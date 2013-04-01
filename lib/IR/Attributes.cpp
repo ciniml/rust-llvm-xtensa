@@ -211,6 +211,8 @@ std::string Attribute::getAsString(bool InAttrGrp) const {
     return "sanitize_thread";
   if (hasAttribute(Attribute::SanitizeMemory))
     return "sanitize_memory";
+  if (hasAttribute(Attribute::FixedStackSegment))
+    return "fixedstacksegment";
   if (hasAttribute(Attribute::UWTable))
     return "uwtable";
   if (hasAttribute(Attribute::ZExt))
@@ -393,6 +395,7 @@ uint64_t AttributeImpl::getAttrMask(Attribute::AttrKind Val) {
   case Attribute::SanitizeThread:  return 1ULL << 36;
   case Attribute::SanitizeMemory:  return 1ULL << 37;
   case Attribute::NoBuiltin:       return 1ULL << 38;
+  case Attribute::FixedStackSegment:  return 1ULL << 39;
   }
   llvm_unreachable("Unsupported attribute type");
 }
@@ -1133,7 +1136,8 @@ void AttrBuilder::removeFunctionOnlyAttrs() {
     .removeAttribute(Attribute::SanitizeMemory)
     .removeAttribute(Attribute::MinSize)
     .removeAttribute(Attribute::NoDuplicate)
-    .removeAttribute(Attribute::NoBuiltin);
+    .removeAttribute(Attribute::NoBuiltin)
+    .removeAttribute(Attribute::FixedStackSegment);
 }
 
 AttrBuilder &AttrBuilder::addRawValue(uint64_t Val) {
