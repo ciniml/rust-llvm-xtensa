@@ -1521,6 +1521,7 @@ void ModuleBitcodeWriter::writeDICompositeType(
   Record.push_back(VE.getMetadataOrNullID(N->getVTableHolder()));
   Record.push_back(VE.getMetadataOrNullID(N->getTemplateParams().get()));
   Record.push_back(VE.getMetadataOrNullID(N->getRawIdentifier()));
+  Record.push_back(VE.getMetadataOrNullID(N->getDiscriminator()));
 
   Stream.EmitRecord(bitc::METADATA_COMPOSITE_TYPE, Record, Abbrev);
   Record.clear();
