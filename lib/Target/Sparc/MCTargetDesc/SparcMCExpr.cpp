@@ -193,14 +193,30 @@ static void fixELFSymbolsInTLSFixupsImpl(const MCExpr *Expr, MCAssembler &Asm) {
 void SparcMCExpr::fixELFSymbolsInTLSFixups(MCAssembler &Asm) const {
   switch(getKind()) {
   default: return;
+  case VK_Sparc_TLS_GD_CALL:
+  case VK_Sparc_TLS_LDM_CALL: {
+    // The corresponding relocations reference __tls_get_addr, as they call it,
+    // but this is only implicit; there is no connection in the ELF file
+    // between the relocation and the symbol, other than the specification for
+    // the semantics of the relocations. However, the symbol must be included
+    // in our symbol table despite the lack of references to it, since it needs
+    // to be bound during linking for these relocations. For details see
+    // https://sourceware.org/bugzilla/show_bug.cgi?id=22832.
+    MCSymbol *Symbol = Asm.getContext().getOrCreateSymbol("__tls_get_addr");
+    Asm.registerSymbol(*Symbol);
+    auto ELFSymbol = cast<MCSymbolELF>(Symbol);
+    if (!ELFSymbol->isBindingSet()) {
+      ELFSymbol->setBinding(ELF::STB_GLOBAL);
+      ELFSymbol->setExternal(true);
+    }
+    LLVM_FALLTHROUGH;
+  }
   case VK_Sparc_TLS_GD_HI22:
   case VK_Sparc_TLS_GD_LO10:
   case VK_Sparc_TLS_GD_ADD:
-  case VK_Sparc_TLS_GD_CALL:
   case VK_Sparc_TLS_LDM_HI22:
   case VK_Sparc_TLS_LDM_LO10:
   case VK_Sparc_TLS_LDM_ADD:
-  case VK_Sparc_TLS_LDM_CALL:
   case VK_Sparc_TLS_LDO_HIX22:
   case VK_Sparc_TLS_LDO_LOX10:
   case VK_Sparc_TLS_LDO_ADD:
