@@ -859,10 +859,10 @@ static bool canSplitPredecessors(PHINode *PN, LoopSafetyInfo *SafetyInfo) {
   BasicBlock *BB = PN->getParent();
   if (!BB->canSplitPredecessors())
     return false;
-  // FIXME: it's not impossible to split LandingPad blocks, but if BlockColors
-  // already exist it require updating BlockColors for all offspring blocks
-  // accordingly. By skipping such corner case, we can make updating BlockColors
-  // after splitting predecessor fairly simple.
+  // It's not impossible to split EHPad blocks, but if BlockColors already exist
+  // it require updating BlockColors for all offspring blocks accordingly. By
+  // skipping such corner case, we can make updating BlockColors after splitting
+  // predecessor fairly simple.
   if (!SafetyInfo->BlockColors.empty() && BB->getFirstNonPHI()->isEHPad())
     return false;
   for (pred_iterator PI = pred_begin(BB), E = pred_end(BB); PI != E; ++PI) {
@@ -1198,9 +1198,9 @@ bool isKnownNonEscaping(Value *Object, const TargetLibraryInfo *TLI) {
   if (isa<AllocaInst>(Object))
     // Since the alloca goes out of scope, we know the caller can't retain a
     // reference to it and be well defined.  Thus, we don't need to check for
-    // capture. 
+    // capture.
     return true;
-  
+
   // For all other objects we need to know that the caller can't possibly
   // have gotten a reference to the object.  There are two components of
   // that:
@@ -1294,7 +1294,7 @@ bool llvm::promoteLoopAccessesToScalars(
     // That said, we can't actually make the unwind edge explicit. Therefore,
     // we have to prove that the store is dead along the unwind edge.  We do
     // this by proving that the caller can't have a reference to the object
-    // after return and thus can't possibly load from the object.  
+    // after return and thus can't possibly load from the object.
     Value *Object = GetUnderlyingObject(SomePtr, MDL);
     if (!isKnownNonEscaping(Object, TLI))
       return false;
