@@ -1759,10 +1759,12 @@ PointerIntPair<DeclContext *, 1> DeclContextTree::getChildDeclContext(
               (void)gotFileName;
               assert(gotFileName && "Must get file name from line table");
 #ifdef HAVE_REALPATH
+#ifdef PATH_MAX
               char RealPath[PATH_MAX + 1];
               RealPath[PATH_MAX] = 0;
               if (::realpath(File.c_str(), RealPath))
                 File = RealPath;
+#endif
 #endif
               FileRef = StringPool.internString(File);
               U.setResolvedPath(FileNum, FileRef);
