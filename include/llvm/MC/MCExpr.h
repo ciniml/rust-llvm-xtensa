@@ -286,6 +286,9 @@ public:
     VK_AMDGPU_REL32_LO,      // symbol@rel32@lo
     VK_AMDGPU_REL32_HI,      // symbol@rel32@hi
 
+    VK_Xtensa_LO,
+    VK_Xtensa_HI, 
+
     VK_TPREL,
     VK_DTPREL
   };
