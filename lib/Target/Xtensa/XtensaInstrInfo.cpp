@@ -97,7 +97,6 @@ unsigned XtensaInstrInfo::GetInstSizeInBytes(MachineInstr *MI) const
       const char *AsmStr = MI->getOperand(0).getSymbolName();
       return getInlineAsmLength(AsmStr, *MF->getTarget().getMCAsmInfo());
     }
-  
      */ 
     default:  return MI->getDesc().getSize();
   }

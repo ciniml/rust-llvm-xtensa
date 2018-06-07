@@ -35,7 +35,7 @@ EmitMachineConstantPoolValue(MachineConstantPoolValue *MCPV)
   else if (ACPV->isBlockAddress()) 
   {
     const BlockAddress *BA =
-      cast<XtensaConstantPoolConstant>(ACPV)->getBlockAddress();
+        cast<XtensaConstantPoolConstant>(ACPV)->getBlockAddress();
     MCSym = GetBlockAddressSymbol(BA);
   } 
   else if (ACPV->isGlobalValue()) 
@@ -50,6 +50,11 @@ EmitMachineConstantPoolValue(MachineConstantPoolValue *MCPV)
     const MachineBasicBlock *MBB = cast<XtensaConstantPoolMBB>(ACPV)->getMBB();
     MCSym = MBB->getSymbol();
   } 
+  else if (ACPV->isJumpTable())
+  {
+    unsigned idx = cast<XtensaConstantPoolJumpTable>(ACPV)->getIndex();
+    MCSym = this->GetJTISymbol(idx, false);
+  }
   else 
   {
     assert(ACPV->isExtSymbol() && "unrecognized constant pool value");

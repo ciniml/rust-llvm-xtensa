@@ -21,7 +21,7 @@
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/TargetRegistry.h"
-
+ 
 using namespace llvm;
 
 #define DEBUG_TYPE "xtensav-asm-parser"
@@ -177,7 +177,7 @@ public:
   }
 
   bool isshimm5() const {
-    return isImm(1, 31); 
+    return isImm(0, 31); 
   }
 
   /// getStartLoc - Gets location of the first token of this operand

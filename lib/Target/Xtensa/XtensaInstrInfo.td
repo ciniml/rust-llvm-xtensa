@@ -313,17 +313,63 @@ let isBranch = 1, isTerminator = 1, isBarrier = 1 in
 let isCall = 1, isBranch = 1, isTerminator = 1, isBarrier = 1, 
    Defs = [a0, a2, a3, a4, a5] in 
 {
-
   def CALL0: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
           "call0\t$offset", 
-          [(Xtensa_call pcrel32call:$offset)]>;
-
-  def CALLX0: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
-          "callx0\t$s", [(Xtensa_call AR:$s)]>
+          [(Xtensa_call pcrel32call:$offset)]>
   {
-    let m = 0x2;
-    let n = 0x0;
-    let isIndirectBranch = 1;
+    let n = 0;
+  }
+  
+  def CALL4: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
+          "call4\t$offset", 
+          []>
+  {
+    let n = 1;
+  }
+
+  def CALL8: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
+          "call8\t$offset", 
+          []>
+  {
+    let n = 2;
+  }
+
+  def CALL12: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
+          "call12\t$offset", 
+          []>
+  {
+    let n = 3;
+  }
+   
+  let isIndirectBranch = 1 in
+  {
+    def CALLX0: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
+            "callx0\t$s", [(Xtensa_call AR:$s)]>
+    {
+      let m = 0x3;
+      let n = 0x0;
+    }
+	
+    def CALLX4: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
+            "callx4\t$s", []>
+    {
+      let m = 0x3;
+      let n = 0x1;
+    }
+
+    def CALLX8: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
+            "callx8\t$s", []>
+    {
+      let m = 0x3;
+      let n = 0x2;
+    }
+
+    def CALLX12: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
+            "callx12\t$s", []>
+    {
+      let m = 0x3;
+      let n = 0x3;
+    }
   }
 }
 
@@ -331,24 +377,50 @@ let isReturn = 1, isTerminator = 1, isCodeGenOnly = 1,
     isBarrier = 1, hasCtrlDep = 1 in
 {
 
-  def RET_N: RRRN_Inst<0x00, (outs), (ins),
+  def RET_N: RRRN_Inst<0x0D, (outs), (ins),
                 "ret.n", [(Xtensa_retflag)]>
   {
     let r = 0x0F;
     let s = 0;
     let t = 0;
   } 
-/*
+
+  /*
   def RET: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins),
-                "ret", [(Xtensa_retflag)]>
+                "ret", []>
   {
     let m = 0x2;
     let n = 0x0;
   }
-*/
+  */
+  
+  def RETW_N: RRRN_Inst<0x0D, (outs), (ins),
+                "retw.n", []>
+  {
+    let r = 0x0F;
+    let s = 0;
+    let t = 1;
+  } 
+
+  /*
+  def RETW: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins),
+                "retw", []>
+  {
+    let m = 0x2;
+    let n = 0x1;
+  }
+  */
 }
 
 def : Pat<(Xtensa_retflag), (RET_N)>;
+
+def ENTRY: BRI12_Inst<0x06, (outs), (ins AR:$s, imm32:$imm12), 
+                "entry\t $s, $imm12", []>
+{
+  let m = 0x0;
+  let n = 0x2;
+}
+
 
 // calls
 def : Pat<(Xtensa_call (i32 tglobaladdr:$dst)),
@@ -357,12 +429,13 @@ def : Pat<(Xtensa_call (i32 texternalsym:$dst)),
           (CALLX0 texternalsym:$dst)>;
 
 //pcrel addr loading using L32R
-def : Pat<(Xtensa_pcrel_wrapper tglobaladdr:$in), (LA tglobaladdr:$in)>;
-def : Pat<(Xtensa_pcrel_wrapper tblockaddress:$in), (LA tblockaddress:$in)>;
-def : Pat<(Xtensa_pcrel_wrapper tjumptable:$in), (LA tjumptable:$in)>;
-def : Pat<(Xtensa_pcrel_wrapper tconstpool:$in), (LA tconstpool:$in)>;
-def : Pat<(Xtensa_pcrel_wrapper tglobaltlsaddr:$in), (LA tglobaltlsaddr:$in)>;
-def : Pat<(Xtensa_pcrel_wrapper texternalsym:$in), (LA texternalsym:$in)>;
+//def : Pat<(Xtensa_pcrel_wrapper tglobaladdr:$in), (LA tglobaladdr:$in)>;
+//def : Pat<(Xtensa_pcrel_wrapper tblockaddress:$in), (LA tblockaddress:$in)>;
+//def : Pat<(Xtensa_pcrel_wrapper tjumptable:$in), (LA tjumptable:$in)>;
+def : Pat<(Xtensa_pcrel_wrapper tconstpool:$in), (L32R tconstpool:$in)>;
+//def : Pat<(Xtensa_pcrel_wrapper tglobaltlsaddr:$in), (LA tglobaltlsaddr:$in)>;
+//def : Pat<(Xtensa_pcrel_wrapper texternalsym:$in), (LA texternalsym:$in)>;
+
 
 //===----------------------------------------------------------------------===//
 // Stack allocation
@@ -389,15 +462,19 @@ let usesCustomInserter = 1 in
 //                       [(set AR:$res, (Xtensa_select AR:$a, AR:$x, AR:$y))]>;
 
 // Expanded into a branch sequence.
-def SELECT_CC : Pseudo<(outs AR:$dst),
-                       (ins AR:$cond, AR:$t, AR:$f),
-                        "# SELECT_CC PSEUDO!",
-                       [(set AR:$dst,
-                       (select AR:$cond, AR:$t, AR:$f))]>;
+//def SELECT_CC : Pseudo<(outs AR:$dst),
+//                       (ins AR:$cond, AR:$t, AR:$f),
+//                        "# SELECT_CC PSEUDO!",
+//                       [(set AR:$dst,
+//                       (select AR:$cond, AR:$t, AR:$f))]>;
+
+def SELECT: Pseudo<(outs AR:$dst), (ins AR:$lhs, AR:$rhs, AR:$t, AR:$f, i32imm:$cond),
+                                  "!select $dst, $lhs, $rhs, $t, $f, $cond",
+                                  [(set AR:$dst, (Xtensa_select_cc AR:$lhs, AR:$rhs, AR:$t, AR:$f, imm:$cond))]>;
 
 }
-def : Pat<(select (i32 (setne AR:$lhs, 0)), AR:$t, AR:$f),
-        (SELECT_CC AR:$lhs, AR:$t, AR:$f)>;
+//def : Pat<(select (i32 (setne AR:$lhs, 0)), AR:$t, AR:$f),
+//        (SELECT_CC AR:$lhs, AR:$t, AR:$f)>;
   
-def : Pat<(select (i32 (seteq AR:$lhs, 0)), AR:$t, AR:$f),
-        (SELECT_CC AR:$lhs, AR:$f, AR:$t)>;
+//def : Pat<(select (i32 (seteq AR:$lhs, 0)), AR:$t, AR:$f),
+//        (SELECT_CC AR:$lhs, AR:$f, AR:$t)>;

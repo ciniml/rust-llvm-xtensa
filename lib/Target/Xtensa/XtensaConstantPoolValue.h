@@ -23,7 +23,8 @@ namespace XtensaCP
     CPExtSymbol,
     CPBlockAddress,
     CPLSDA,
-    CPMachineBasicBlock
+    CPMachineBasicBlock,
+    CPJumpTable
   };
 }
 
@@ -39,10 +40,10 @@ class XtensaConstantPoolValue : public MachineConstantPoolValue
 protected:
   XtensaConstantPoolValue(Type *Ty, unsigned id, XtensaCP::XtensaCPKind Kind,
                        bool AddCurrentAddress);
-#if 0
-  XtensaConstantPoolValue(LLVMContext &C, unsigned id, XtensaCP::XtensaCPKind Kind,
+
+  XtensaConstantPoolValue(LLVMContext &C, unsigned id, XtensaCP::XtensaCPKind Kind, 
                        bool AddCurrentAddress);
-#endif
+
   template <typename Derived>
   int getExistingMachineCPValueImpl(MachineConstantPool *CP,
                                     unsigned Alignment) 
@@ -76,7 +77,8 @@ public:
   bool isExtSymbol() const { return Kind == XtensaCP::CPExtSymbol; }
   bool isBlockAddress() const { return Kind == XtensaCP::CPBlockAddress; }
   bool isLSDA() const { return Kind == XtensaCP::CPLSDA; }
-  bool isMachineBasicBlock() const{ return Kind == XtensaCP::CPMachineBasicBlock; }
+  bool isMachineBasicBlock() const { return Kind == XtensaCP::CPMachineBasicBlock; }
+  bool isJumpTable() const { return Kind == XtensaCP::CPJumpTable; }
 
   int getExistingMachineCPValue(MachineConstantPool *CP,
                                 unsigned Alignment) override;
@@ -124,11 +126,9 @@ public:
   static XtensaConstantPoolConstant *Create(const GlobalValue *GV);
 #endif
   static XtensaConstantPoolConstant *Create(const Constant *C, unsigned ID,
-                                         XtensaCP::XtensaCPKind Kind,
-                                         unsigned char PCAdj);
+                                         XtensaCP::XtensaCPKind Kind);
   static XtensaConstantPoolConstant *Create(const Constant *C, unsigned ID,
                                          XtensaCP::XtensaCPKind Kind,
-                                         unsigned char PCAdj,
                                          bool AddCurrentAddress);
 
   const GlobalValue *getGV() const;
@@ -162,12 +162,11 @@ class XtensaConstantPoolSymbol : public XtensaConstantPoolValue
   const std::string S;          // ExtSymbol being loaded.
 
   XtensaConstantPoolSymbol(LLVMContext &C, const char *s, unsigned id,
-                        unsigned char PCAdj,
-                        bool AddCurrentAddress);
+                           bool AddCurrentAddress);
 
 public:
   static XtensaConstantPoolSymbol *Create(LLVMContext &C, const char *s,
-                                       unsigned ID, unsigned char PCAdj);
+                                       unsigned ID);
 
   const char *getSymbol() const { return S.c_str(); }
 
@@ -228,6 +227,41 @@ public:
   bool equals(const XtensaConstantPoolMBB *A) const 
   {
     return MBB == A->MBB && XtensaConstantPoolValue::equals(A);
+  }
+};
+
+/// XtensaConstantPoolJumpTable - Xtensa-specific constantpool values for Jump Table
+/// symbols.
+class XtensaConstantPoolJumpTable : public XtensaConstantPoolValue 
+{
+  unsigned IDX; // Jump Table Index.
+
+  XtensaConstantPoolJumpTable(LLVMContext &C, unsigned idx);
+
+public:
+  static XtensaConstantPoolJumpTable *Create(LLVMContext &C, unsigned idx);
+
+  unsigned getIndex() const { return IDX; }
+
+  int getExistingMachineCPValue(MachineConstantPool *CP,
+                                unsigned Alignment) override;
+
+  void addSelectionDAGCSEId(FoldingSetNodeID &ID) override;
+
+  /// hasSameValue - Return true if this Xtensa constpool value can share the
+  /// same constantpool entry as another Xtensa constpool value.
+  bool hasSameValue(XtensaConstantPoolValue *ACPV) override;
+
+  void print(raw_ostream &O) const override;
+
+  static bool classof(const XtensaConstantPoolValue *ACPV) 
+  {
+    return ACPV->isJumpTable();
+  }
+
+  bool equals(const XtensaConstantPoolJumpTable *A) const 
+  {
+    return IDX== A->IDX && XtensaConstantPoolValue::equals(A);
   }
 };
 

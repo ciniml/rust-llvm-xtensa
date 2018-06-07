@@ -142,6 +142,7 @@ public:
 private:
   const XtensaSubtarget &Subtarget;
 
+  SDValue lowerBR_JT(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerImmediate(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerRETURNADDR(SDValue Op, SelectionDAG &DAG) const;

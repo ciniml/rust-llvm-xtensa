@@ -5,10 +5,10 @@ def SDT_XtensaCallSeqStart        : SDCallSeqStart<[SDTCisVT<0, i32>]>;
 def SDT_XtensaCallSeqEnd          : SDCallSeqEnd<[SDTCisVT<0, i32>,
                                             SDTCisVT<1, i32>]>;
 def SDT_XtensaCall               : SDTypeProfile<0, -1, [SDTCisPtrTy<0>]>;
-def SDT_XtensaSelectCC           : SDTypeProfile<1, 3,
+def SDT_XtensaSelectCC           : SDTypeProfile<1, 5,
                                             [SDTCisSameAs<0, 1>,
-                                             SDTCisSameAs<1, 2>,
-                                             SDTCisVT<3, i32>]>;
+                                             SDTCisSameAs<2, 3>, 
+                                             SDTCisVT<5, i32>]>;
 def SDT_XtensaWrapPtr            : SDTypeProfile<1, 1,
                                             [SDTCisSameAs<0, 1>,
                                              SDTCisPtrTy<0>]>;

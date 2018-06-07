@@ -14,17 +14,16 @@ XtensaConstantPoolValue::XtensaConstantPoolValue(Type *Ty, unsigned id,
                                            bool addCurrentAddress)
   : MachineConstantPoolValue(Ty), LabelId(id), Kind(kind),
     AddCurrentAddress(addCurrentAddress) {}
-#if 0
+
 XtensaConstantPoolValue::XtensaConstantPoolValue(LLVMContext &C, unsigned id,
                                            XtensaCP::XtensaCPKind kind,
-                                           unsigned char PCAdj,
                                            bool addCurrentAddress)
   : MachineConstantPoolValue((Type*)Type::getInt32Ty(C)),
     LabelId(id), Kind(kind),
     AddCurrentAddress(addCurrentAddress) 
 {
 }
-#endif
+
 XtensaConstantPoolValue::~XtensaConstantPoolValue() {}
 
 int XtensaConstantPoolValue::getExistingMachineCPValue(MachineConstantPool *CP,
@@ -66,22 +65,17 @@ void XtensaConstantPoolValue::print(raw_ostream &O) const
 //===----------------------------------------------------------------------===//
 // XtensaConstantPoolConstant
 //===----------------------------------------------------------------------===//
-#if 1
+
 XtensaConstantPoolConstant::XtensaConstantPoolConstant(Type *Ty,
                                                  const Constant *C,
                                                  unsigned ID,
                                                  XtensaCP::XtensaCPKind Kind,
                                                  bool AddCurrentAddress)
-#if 0
-  : XtensaConstantPoolValue(Ty, ID, Kind, PCAdj, Modifier, AddCurrentAddress),
-#else
   : XtensaConstantPoolValue((Type*)C->getType(), ID, Kind, 
-                         AddCurrentAddress),
-#endif
-    CVal(C) 
+                         AddCurrentAddress),  CVal(C) 
 {
 }
-#endif
+
 XtensaConstantPoolConstant::XtensaConstantPoolConstant(const Constant *C,
                                                  unsigned ID,
                                                  XtensaCP::XtensaCPKind Kind,
@@ -91,6 +85,7 @@ XtensaConstantPoolConstant::XtensaConstantPoolConstant(const Constant *C,
     CVal(C) 
 {
 }
+
 #if 0
 XtensaConstantPoolConstant *
 XtensaConstantPoolConstant::Create(const Constant *C, unsigned ID) 
@@ -107,13 +102,14 @@ XtensaConstantPoolConstant::Create(const GlobalValue *GV)
 #endif
 XtensaConstantPoolConstant *
 XtensaConstantPoolConstant::Create(const Constant *C, unsigned ID,
-                                XtensaCP::XtensaCPKind Kind, unsigned char PCAdj) {
+                                XtensaCP::XtensaCPKind Kind) 
+{
   return new XtensaConstantPoolConstant(C, ID, Kind, false);
 }
 #if 1
 XtensaConstantPoolConstant *
 XtensaConstantPoolConstant::Create(const Constant *C, unsigned ID,
-                                XtensaCP::XtensaCPKind Kind, unsigned char PCAdj, bool AddCurrentAddress) 
+                                XtensaCP::XtensaCPKind Kind, bool AddCurrentAddress) 
 {
   return new XtensaConstantPoolConstant(C, ID, Kind, AddCurrentAddress);
 }
@@ -151,22 +147,21 @@ void XtensaConstantPoolConstant::print(raw_ostream &O) const
   O << CVal->getName();
   XtensaConstantPoolValue::print(O);
 }
-#if 0
-XtensaConstantPoolSymbol::XtensaConstantPoolSymbol(LLVMContext &C, const char *s,
-                                             unsigned id,
-                                             bool AddCurrentAddress)
+
+XtensaConstantPoolSymbol::XtensaConstantPoolSymbol(LLVMContext &C, const char *s, unsigned id,
+                                bool AddCurrentAddress)
   : XtensaConstantPoolValue(C, id, XtensaCP::CPExtSymbol,
                          AddCurrentAddress), S(s) 
 {
 }
 
 XtensaConstantPoolSymbol *
-XtensaConstantPoolSymbol::Create(LLVMContext &C, const char *s,
-                              unsigned ID) 
+XtensaConstantPoolSymbol::Create(LLVMContext &C, const char *s, unsigned ID)
+                                 
 {
   return new XtensaConstantPoolSymbol(C, s, ID, false);
 }
-#endif
+
 int XtensaConstantPoolSymbol::getExistingMachineCPValue(MachineConstantPool *CP,
                                                      unsigned Alignment) 
 {
@@ -230,5 +225,46 @@ void XtensaConstantPoolMBB::addSelectionDAGCSEId(FoldingSetNodeID &ID)
 void XtensaConstantPoolMBB::print(raw_ostream &O) const 
 {
   O << "BB#" << MBB->getNumber();
+  XtensaConstantPoolValue::print(O);
+}
+
+
+
+XtensaConstantPoolJumpTable::XtensaConstantPoolJumpTable(LLVMContext &C,
+                                                         unsigned idx)
+    : XtensaConstantPoolValue(C, 0, XtensaCP::CPJumpTable, false), IDX(idx) 
+{
+}
+
+XtensaConstantPoolJumpTable* XtensaConstantPoolJumpTable::Create(LLVMContext& C, unsigned idx)
+{
+  return new XtensaConstantPoolJumpTable(C, idx);
+}
+
+int XtensaConstantPoolJumpTable::getExistingMachineCPValue(MachineConstantPool *CP,
+                                                     unsigned Alignment) 
+{
+  return getExistingMachineCPValueImpl<XtensaConstantPoolJumpTable>(
+      CP, Alignment);
+}
+
+bool XtensaConstantPoolJumpTable::hasSameValue(
+    XtensaConstantPoolValue *ACPV) 
+{
+  const XtensaConstantPoolJumpTable *ACPJT =
+      dyn_cast<XtensaConstantPoolJumpTable>(ACPV);
+  return ACPJT && ACPJT->IDX == IDX &&
+         XtensaConstantPoolValue::hasSameValue(ACPV);
+}
+
+void XtensaConstantPoolJumpTable::addSelectionDAGCSEId(
+    FoldingSetNodeID &ID) 
+{
+//  ID.AddPointer(IDX);
+//  XtensaConstantPoolValue::addSelectionDAGCSEId(ID);
+}
+
+void XtensaConstantPoolJumpTable::print(raw_ostream &O) const {
+  O << "JT" << IDX;
   XtensaConstantPoolValue::print(O);
 }
