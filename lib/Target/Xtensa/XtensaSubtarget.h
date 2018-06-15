@@ -66,6 +66,8 @@ public:
 
   bool isESP8266() const { return XtensaArchVersion == ESP8266; };
   bool isESP32() const { return XtensaArchVersion == ESP32; };
+
+  bool isWinABI() const { return true /* isESP32(); */ ; };
   
   bool hasF() const { return HasF; };
 

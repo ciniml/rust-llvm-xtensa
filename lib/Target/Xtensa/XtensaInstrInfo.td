@@ -401,7 +401,7 @@ let isReturn = 1, isTerminator = 1, isCodeGenOnly = 1,
     let s = 0;
     let t = 1;
   } 
-
+   
   /*
   def RETW: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins),
                 "retw", []>
@@ -413,9 +413,10 @@ let isReturn = 1, isTerminator = 1, isCodeGenOnly = 1,
 }
 
 def : Pat<(Xtensa_retflag), (RET_N)>;
+def : Pat<(Xtensa_retWflag), (RETW_N)>;
 
-def ENTRY: BRI12_Inst<0x06, (outs), (ins AR:$s, imm32:$imm12), 
-                "entry\t $s, $imm12", []>
+def ENTRY: BRI12_Inst<0x06, (outs), (ins AR:$s, entry_imm12:$imm12), 
+                "entry\t$s, $imm12", []>
 {
   let m = 0x0;
   let n = 0x2;
@@ -425,17 +426,25 @@ def ENTRY: BRI12_Inst<0x06, (outs), (ins AR:$s, imm32:$imm12),
 // calls
 def : Pat<(Xtensa_call (i32 tglobaladdr:$dst)),
           (CALL0 tglobaladdr:$dst)>;
+def : Pat<(Xtensa_callw (i32 tglobaladdr:$dst)),
+          (CALL8 tglobaladdr:$dst)>;
 def : Pat<(Xtensa_call (i32 texternalsym:$dst)),
-          (CALLX0 texternalsym:$dst)>;
+          (CALL0 texternalsym:$dst)>;
+def : Pat<(Xtensa_callw (i32 texternalsym:$dst)),
+          (CALL8 texternalsym:$dst)>;
+def : Pat<(Xtensa_call AR:$dst),
+          (CALLX0 AR:$dst)>;
+def : Pat<(Xtensa_callw AR:$dst),
+          (CALLX8 AR:$dst)>;
 
 //pcrel addr loading using L32R
+def : Pat<(Xtensa_pcrel_wrapper tconstpool:$in), (L32R tconstpool:$in)>;
+
 //def : Pat<(Xtensa_pcrel_wrapper tglobaladdr:$in), (LA tglobaladdr:$in)>;
 //def : Pat<(Xtensa_pcrel_wrapper tblockaddress:$in), (LA tblockaddress:$in)>;
 //def : Pat<(Xtensa_pcrel_wrapper tjumptable:$in), (LA tjumptable:$in)>;
-def : Pat<(Xtensa_pcrel_wrapper tconstpool:$in), (L32R tconstpool:$in)>;
 //def : Pat<(Xtensa_pcrel_wrapper tglobaltlsaddr:$in), (LA tglobaltlsaddr:$in)>;
 //def : Pat<(Xtensa_pcrel_wrapper texternalsym:$in), (LA texternalsym:$in)>;
-
 
 //===----------------------------------------------------------------------===//
 // Stack allocation

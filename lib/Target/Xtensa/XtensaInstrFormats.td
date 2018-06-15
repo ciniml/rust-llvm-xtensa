@@ -1,3 +1,4 @@
+// Base class for Xtensa 16 & 24 bit Formats
 class XtensaInst<int size, dag outs, dag ins, string asmstr, list<dag> pattern,
                       InstrItinClass itin = NoItinerary>: Instruction
 {

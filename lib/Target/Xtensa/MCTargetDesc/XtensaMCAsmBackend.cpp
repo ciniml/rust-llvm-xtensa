@@ -36,6 +36,8 @@ static unsigned getRelaxedOpcode(unsigned Opcode)
   //case Xtensa::BRC:  return Xtensa::BRCL;
   //case Xtensa::J:    return Xtensa::JG;
   //case Xtensa::BRAS: return Xtensa::BRASL;
+  default:
+    break;
   }
   return 0;
 }

@@ -97,6 +97,10 @@ unsigned XtensaInstrInfo::GetInstSizeInBytes(MachineInstr *MI) const
       const char *AsmStr = MI->getOperand(0).getSymbolName();
       return getInlineAsmLength(AsmStr, *MF->getTarget().getMCAsmInfo());
     }
+    case Xtensa::CONSTPOOL_ENTRY:
+      // If this machine instr is a constant pool entry, its size is recorded as
+      // operand #2.
+      return MI->getOperand(2).getImm();    
      */ 
     default:  return MI->getDesc().getSize();
   }

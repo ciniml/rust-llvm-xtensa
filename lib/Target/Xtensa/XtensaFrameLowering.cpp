@@ -59,6 +59,12 @@ bool XtensaFrameLowering::hasFP(const MachineFunction &MF) const
       MFI.hasVarSizedObjects() || MFI.isFrameAddressTaken();
 }
 
+/* minimum frame = reg save area (4 words) plus static chain (1 word)
+   and the total number of words must be a multiple of 128 bits.  */
+/* Width of a word, in units (bytes).  */
+#define UNITS_PER_WORD 4
+#define MIN_FRAME_SIZE (8 * UNITS_PER_WORD)
+
 void XtensaFrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &MBB) const 
 {
   assert(&MBB == &MF.front() && "Shrink-wrapping not yet implemented");
@@ -77,6 +83,41 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF, MachineBasicBlock &M
 
   // First, compute final stack size.
   uint64_t StackSize = MFI.getStackSize();
+
+  if (STI.isWinABI())
+  {
+    if (StackSize <= 32760)
+    {
+      BuildMI(MBB, MBBI, dl, TII.get(Xtensa::ENTRY))
+          .addReg(SP)
+          .addImm(StackSize);
+    }
+    else 
+	{
+//      MachineFunction *F = MBB.getParent();
+//      unsigned TmpReg = F->getRegInfo().createVirtualRegister(&Xtensa::ARRegClass);
+
+      /* Use a8 as a temporary since a0-a7 may be live.  */
+      unsigned TmpReg = Xtensa::a8;   
+
+      const XtensaInstrInfo &TII = *static_cast<const XtensaInstrInfo *>(
+          MBB.getParent()->getSubtarget().getInstrInfo());
+      BuildMI(MBB, MBBI, dl, TII.get(Xtensa::ENTRY))
+          .addReg(TmpReg)
+          .addImm(MIN_FRAME_SIZE);
+      TII.loadImmediate(MBB, MBBI, &TmpReg, StackSize - MIN_FRAME_SIZE);
+      BuildMI(MBB, MBBI, dl, TII.get(Xtensa::SUB))
+          .addReg(SP)
+          .addReg(TmpReg);
+    }    
+
+    // emit ".cfi_def_cfa_offset StackSize"
+    unsigned CFIIndex = MF.addFrameInst(
+        MCCFIInstruction::createDefCfaOffset(nullptr, -StackSize));
+    BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
+        .addCFIIndex(CFIIndex);
+    return;
+  }
 
   // No need to allocate space on the stack.
   if (StackSize == 0 && !MFI.adjustsStack()) return;
@@ -148,6 +189,11 @@ void XtensaFrameLowering::emitEpilogue(MachineFunction &MF,
   const XtensaSubtarget &STI = MF.getSubtarget<XtensaSubtarget>();
   unsigned SP = Xtensa::sp;
   unsigned FP = Xtensa::a15;
+
+  if (STI.isWinABI())
+  {
+    return;
+  }
 
   // if framepointer enabled, restore the stack pointer.
   if (hasFP(MF)) 
@@ -227,7 +273,8 @@ XtensaFrameLowering::eliminateCallFramePseudoInstr(MachineFunction &MF, MachineB
     *static_cast<const XtensaInstrInfo*>(MF.getSubtarget().getInstrInfo());
   const XtensaSubtarget &STI = MF.getSubtarget<XtensaSubtarget>();
 
-  if (!hasReservedCallFrame(MF)) {
+  if (!hasReservedCallFrame(MF)) 
+  {
     int64_t Amount = I->getOperand(0).getImm();
 
     if (I->getOpcode() == Xtensa::ADJCALLSTACKDOWN)

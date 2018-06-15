@@ -50,7 +50,8 @@ def CC_Xtensa_VAR : CallingConv<[
 // Callee-saved register lists.
 //===----------------------------------------------------------------------===//
 
-def CSR_Xtensa: CalleeSavedRegs<(add a0, a12, a13, a14, a15)>;
+def CSR_Xtensa: CalleeSavedRegs<(add /* a0 , */ a12, a13, a14, a15)>;
+
 
 
 

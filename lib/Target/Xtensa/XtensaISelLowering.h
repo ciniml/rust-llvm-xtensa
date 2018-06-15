@@ -24,11 +24,15 @@ namespace XtensaISD
 
     // Return with a flag operand.  Operand 0 is the chain operand.
     RET_FLAG,
+    // WinABI Return
+    RETW_FLAG,
 
     // Calls a function.  Operand 0 is the chain operand and operand 1
     // is the target address.  The arguments start at operand 2.
     // There is an optional glue operand at the end.
     CALL,
+	// WinABI Call version
+	CALLW,
 
     // Wraps a TargetGlobalAddress that should be loaded using PC-relative
     // accesses (AUIPC).  Operand 0 is the address.

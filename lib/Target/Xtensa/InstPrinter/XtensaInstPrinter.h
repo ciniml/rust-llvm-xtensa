@@ -51,6 +51,7 @@ private:
   void printOffset8m16_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
   void printOffset8m32_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
   void printOffset4m32_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
+  void printEntry_Imm12_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
   
   // Print the mnemonic for a condition-code mask ("ne", "lh", etc.)
   // This forms part of the instruction name rather than the operand list.

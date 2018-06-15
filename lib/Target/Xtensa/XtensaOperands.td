@@ -66,6 +66,10 @@ def offset4m32: Immediate<i32,
   [{ return Imm >= 0 && Imm <= 60 && (Imm & 0x3 == 0); }], 
   "Offset4m32_AsmOperand">;
 
+// entry_imm12 predicate - Immediate in the range [0,32760], ENTRY parameter
+def Entry_Imm12_AsmOperand: ImmAsmOperand<"entry_imm12">;
+def entry_imm12: Immediate<i32, [{ return Imm >= 0 && Imm <= 32760; }], "Entry_Imm12_AsmOperand">; 
+
 def imm32 : ImmLeaf<i32, [{}]>, Operand<i32>;
 
 //===----------------------------------------------------------------------===//

@@ -144,8 +144,10 @@ public:
     return isImm(-2048, 2047); 
   }
 
+ bool isentry_imm12() const { return isImm(-2048, 2047); }
+
   bool isimm7n() const {
-    return isImm(-32, 95);   
+    return isImm(0, 32760);   
   }
 
   bool isimm8() const {

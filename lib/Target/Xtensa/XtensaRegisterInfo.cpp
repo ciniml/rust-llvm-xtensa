@@ -14,13 +14,18 @@
 
 using namespace llvm;
 
+// WinABI callee save list - empty
+static const MCPhysReg CSRW_Xtensa_SaveList[] = {0};
+
 XtensaRegisterInfo::XtensaRegisterInfo(const XtensaSubtarget &STI)
     : XtensaGenRegisterInfo(Xtensa::a0), Subtarget(STI) {}
 
 const uint16_t*
 XtensaRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const 
 {
-  if(Subtarget.isESP8266())
+  if (Subtarget.isWinABI())
+    return CSRW_Xtensa_SaveList;
+  else if(Subtarget.isESP8266())
     return CSR_Xtensa_SaveList;
   else if (Subtarget.isESP32())
     return CSR_Xtensa_SaveList;
