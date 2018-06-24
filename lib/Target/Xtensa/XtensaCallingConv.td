@@ -52,6 +52,7 @@ def CC_Xtensa_VAR : CallingConv<[
 
 def CSR_Xtensa: CalleeSavedRegs<(add /* a0 , */ a12, a13, a14, a15)>;
 
-
+// Win ABI Overflow Spill registers
+def CSRW_Xtensa: CalleeSavedRegs<(add a8, a9, a10, a11, a12, a13, a14, a15)>;
 
 

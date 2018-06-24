@@ -8,7 +8,7 @@
 #include "llvm/Target/TargetMachine.h"
 using namespace llvm;
 
-STATISTIC(NumExpanded, "Number of branches expanded to long format");
+//STATISTIC(NumExpanded, "Number of branches expanded to long format");
 
 namespace llvm 
 {

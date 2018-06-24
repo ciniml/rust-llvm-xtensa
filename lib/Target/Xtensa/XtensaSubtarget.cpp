@@ -29,13 +29,14 @@ XtensaSubtarget &XtensaSubtarget::initializeSubtargetDependencies(StringRef CPU,
 XtensaSubtarget::XtensaSubtarget(const Triple &TT, const std::string &CPU,
                                const std::string &FS, const TargetMachine &TM)
     : XtensaGenSubtargetInfo(TT, CPU, FS), XtensaArchVersion(ESP32), 
+      UseSoftFloat(true), HasF(false),
       TargetTriple(TT),
       InstrInfo(initializeSubtargetDependencies(CPU,FS)), TLInfo(TM, *this), 
-      TSInfo(), FrameLowering(),
-      UseSmallSection(false), UseSoftFloat(true), HasF(false) /* TODO */  
+      TSInfo(), FrameLowering(), UseSmallSection(false) /* TODO */  
 {
 }
 
+#if 0
 // Return true if GV binds locally under reloc model RM.
 static bool bindsLocally(const GlobalValue *GV, Reloc::Model RM) 
 {
@@ -45,3 +46,4 @@ static bool bindsLocally(const GlobalValue *GV, Reloc::Model RM)
 
   return GV->hasLocalLinkage() || !GV->hasDefaultVisibility();
 }
+#endif

@@ -448,11 +448,11 @@ SelectInlineAsmMemoryOperand(const SDValue &Op,
 
 void XtensaDAGToDAGISel::processFunctionAfterISel(MachineFunction &MF) 
 {
-  for (auto &MBB: MF)
+  /*for (auto &MBB: MF)
   {  
     for (auto &I: MBB) 
     {
       // TODO something useful for future
     }
-  }  
+  }  */
 }

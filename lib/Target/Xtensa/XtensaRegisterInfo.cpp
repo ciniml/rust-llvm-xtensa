@@ -15,7 +15,7 @@
 using namespace llvm;
 
 // WinABI callee save list - empty
-static const MCPhysReg CSRW_Xtensa_SaveList[] = {0};
+static const MCPhysReg CSRWE_Xtensa_SaveList[] = {0};
 
 XtensaRegisterInfo::XtensaRegisterInfo(const XtensaSubtarget &STI)
     : XtensaGenRegisterInfo(Xtensa::a0), Subtarget(STI) {}
@@ -165,5 +165,7 @@ unsigned
 XtensaRegisterInfo::getFrameRegister(const MachineFunction &MF) const 
 {
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
-  return TFI->hasFP(MF) ? Xtensa::a15 : Xtensa::sp;
+  return TFI->hasFP(MF) ?  
+	  (Subtarget.isWinABI() ? Xtensa::a7 :  Xtensa::a15) : 
+	    Xtensa::sp;
 }

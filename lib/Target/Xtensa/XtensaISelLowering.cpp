@@ -17,7 +17,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
-
+ 
 static const MCPhysReg XtensaIntRegs[16] = {
     Xtensa::a0,  Xtensa::sp,  Xtensa::a2,  Xtensa::a3, Xtensa::a4,  Xtensa::a5,
     Xtensa::a6,  Xtensa::a7,  Xtensa::a8,  Xtensa::a9, Xtensa::a10, Xtensa::a11,
@@ -34,7 +34,8 @@ void XtensaTargetObjectFile::Initialize(MCContext &Ctx, const TargetMachine &TM)
 // The calling conventions in XtensaCallingConv.td are described in terms of the
 // callee's register window. This function translates registers to the
 // corresponding caller window %o register.
-static unsigned toCallerWindow(unsigned Reg) {
+static unsigned toCallerWindow(unsigned Reg) 
+{
   if (Reg >= Xtensa::a2 && Reg <= Xtensa::a7)
     return Reg - Xtensa::a2 + Xtensa::a10;
   return Reg;
@@ -42,7 +43,8 @@ static unsigned toCallerWindow(unsigned Reg) {
 
 XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
                                            const XtensaSubtarget &STI)
-    : TargetLowering(tm), Subtarget(STI) {
+    : TargetLowering(tm), Subtarget(STI) 
+{
   MVT PtrVT = MVT::i32;
   // Set up the register classes.
   addRegisterClass(MVT::i32, &Xtensa::ARRegClass);
@@ -89,9 +91,11 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
 
   // Handle integer types.
   for (unsigned I = MVT::FIRST_INTEGER_VALUETYPE;
-       I <= MVT::LAST_INTEGER_VALUETYPE; ++I) {
+       I <= MVT::LAST_INTEGER_VALUETYPE; ++I) 
+  {
     MVT VT = MVT::SimpleValueType(I);
-    if (isTypeLegal(VT)) {
+    if (isTypeLegal(VT)) 
+	{
       // No support at all
       setOperationAction(ISD::SDIVREM, VT, Expand);
       setOperationAction(ISD::UDIVREM, VT, Expand);
@@ -817,13 +821,14 @@ XtensaTargetLowering::LowerCall(CallLoweringInfo &CLI,
           getAddrPIC(DAG.getTargetExternalSymbol(E->getSymbol(), PtrVT), DAG);
     else
       Callee = DAG.getTargetExternalSymbol(E->getSymbol(), PtrVT);
-  } else if (GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee)) {
+  } 
+  //else if (GlobalAddressSDNode *G = dyn_cast<GlobalAddressSDNode>(Callee)) {
     // TODO replace GlobalAddress to some special operand instead of
     // ExternalSymbol
     //   Callee =
     //   DAG.getTargetExternalSymbol(strdup(G->getGlobal()->getName().str().c_str()),
     //   PtrVT);
-  }
+  //}
 
   // The first call operand is the chain and the second is the target address.
   SmallVector<SDValue, 8> Ops;
@@ -942,15 +947,15 @@ SDValue XtensaTargetLowering::lowerSELECT_CC(SDValue Op,
                                              SelectionDAG &DAG) const {
   SDLoc DL(Op);
   EVT Ty = Op.getOperand(0).getValueType();
-  SDValue LHS = Op.getOperand(0);
-  SDValue RHS = Op.getOperand(1);
-  SDValue TrueV = Op.getOperand(2);
-  SDValue FalseV = Op.getOperand(3);
+  //SDValue LHS = Op.getOperand(0);
+  //SDValue RHS = Op.getOperand(1);
+  //SDValue TrueV = Op.getOperand(2);
+  //SDValue FalseV = Op.getOperand(3);
   ISD::CondCode CC = cast<CondCodeSDNode>(Op->getOperand(4))->get();
   SDValue TargetCC = DAG.getConstant(CC, DL, MVT::i32);
 
-  SDVTList VTs = DAG.getVTList(Op.getValueType(), MVT::Glue);
-  SDValue Ops[] = {LHS, RHS, TrueV, FalseV, TargetCC};
+  //SDVTList VTs = DAG.getVTList(Op.getValueType(), MVT::Glue);
+  //SDValue Ops[] = {LHS, RHS, TrueV, FalseV, TargetCC};
 
   // Wrap select nodes
   return DAG.getNode(XtensaISD::SELECT_CC, DL, Ty, Op.getOperand(0),
@@ -1101,13 +1106,13 @@ SDValue XtensaTargetLowering::lowerBR_JT(SDValue Op, SelectionDAG &DAG) const {
   SDValue Table = Op.getOperand(1);
   SDValue Index = Op.getOperand(2);
   SDLoc DL(Op);
-  JumpTableSDNode *JT = cast<JumpTableSDNode>(Table);
-  unsigned JTI = JT->getIndex();
+  //JumpTableSDNode *JT = cast<JumpTableSDNode>(Table);
+  //unsigned JTI = JT->getIndex();
   MachineFunction &MF = DAG.getMachineFunction();
   const MachineJumpTableInfo *MJTI = MF.getJumpTableInfo();
 
-  SDValue TargetJT = DAG.getTargetJumpTable(JT->getIndex(), MVT::i32);
-  unsigned NumEntries = MJTI->getJumpTables()[JTI].MBBs.size();
+  //SDValue TargetJT = DAG.getTargetJumpTable(JT->getIndex(), MVT::i32);
+  //unsigned NumEntries = MJTI->getJumpTables()[JTI].MBBs.size();
   //  printf("--- Index = %d  NumEntries = %d\n", JTI, NumEntries);
 
   const DataLayout &TD = DAG.getDataLayout();
@@ -1138,7 +1143,7 @@ SDValue XtensaTargetLowering::lowerJumpTable(JumpTableSDNode *JT,
   //  printf("---- lowerJumpTable -------\n");
   SDLoc DL(JT);
   EVT PtrVt = getPointerTy(DAG.getDataLayout());
-  SDValue Result = DAG.getTargetJumpTable(JT->getIndex(), PtrVt);
+  //SDValue Result = DAG.getTargetJumpTable(JT->getIndex(), PtrVt);
 
   // Create a constant pool entry for the callee address
   XtensaConstantPoolValue *CPV =
@@ -1314,8 +1319,8 @@ const char *XtensaTargetLowering::getTargetNodeName(unsigned Opcode) const {
 // Call pseduo ops for ABI compliant calls (output is always ra)
 MachineBasicBlock *XtensaTargetLowering::emitCALL(MachineInstr *MI,
                                                   MachineBasicBlock *BB) const {
-  const TargetInstrInfo *TII = BB->getParent()->getSubtarget().getInstrInfo();
-  DebugLoc DL = MI->getDebugLoc();
+  //const TargetInstrInfo *TII = BB->getParent()->getSubtarget().getInstrInfo();
+  //DebugLoc DL = MI->getDebugLoc();
   /* TODO
     unsigned jump;
     unsigned RA;
