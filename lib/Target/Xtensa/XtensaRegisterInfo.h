@@ -2,7 +2,6 @@
 #define LLVM_LIB_TARGET_XTENSA_XTENSAREGISTERINFO_H
 
 #include "Xtensa.h"
-//#include "llvm/Target/TargetRegisterInfo.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "XtensaMachineFunctionInfo.h"
 

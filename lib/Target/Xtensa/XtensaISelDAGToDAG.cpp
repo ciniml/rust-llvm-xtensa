@@ -102,10 +102,27 @@ class XtensaDAGToDAGISel : public SelectionDAGISel
     }
 
     // Addresses of the form FI+const or FI|const
+    bool Valid = false;
     if (CurDAG->isBaseWithConstantOffset(Addr)) 
     {
       ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1));
-      if (isInt<12>(CN->getSExtValue())) {
+      int64_t OffsetVal = CN->getSExtValue();
+
+	  switch (ValTy.getSizeInBits()) { 
+	    case 8:
+          Valid = (OffsetVal >= 0 && OffsetVal <= 255);
+          break;
+        case 16:
+          Valid = (OffsetVal >= 0 && OffsetVal <= 510); 
+          break;
+        case 32:
+          Valid = (OffsetVal >= 0 && OffsetVal <= 1020);	       
+          break;
+        default:
+          break;		 
+	  }
+
+      if (Valid) {
   
         // If the first operand is a FI, get the TargetFI Node
         if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>
@@ -448,11 +465,11 @@ SelectInlineAsmMemoryOperand(const SDValue &Op,
 
 void XtensaDAGToDAGISel::processFunctionAfterISel(MachineFunction &MF) 
 {
-  /*for (auto &MBB: MF)
+  for (auto &MBB: MF)
   {  
     for (auto &I: MBB) 
     {
       // TODO something useful for future
     }
-  }  */
+  }  
 }

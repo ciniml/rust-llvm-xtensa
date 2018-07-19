@@ -54,12 +54,12 @@ class ADDX<bits<4> oper, string instrAsm, list<dag> pattern>:
      instrAsm#"\t$r, $s, $t",
      pattern>; 
 
-def ADDX2: ADDX<0x09, "addx2", [(set AR:$r, (add AR:$s, (shl AR:$t, (i32 1))))]>;
-def ADDX4: ADDX<0x0A, "addx4", [(set AR:$r, (add AR:$s, (shl AR:$t, (i32 2))))]>;
-def ADDX8: ADDX<0x0B, "addx8", [(set AR:$r, (add AR:$s, (shl AR:$t, (i32 3))))]>;
-def SUBX2: ADDX<0x0D, "subx2", [(set AR:$r, (sub (shl AR:$s, (i32 1)), AR:$t))]>;
-def SUBX4: ADDX<0x0E, "subx4", [(set AR:$r, (sub (shl AR:$s, (i32 2)), AR:$t))]>;
-def SUBX8: ADDX<0x0F, "subx8", [(set AR:$r, (sub (shl AR:$s, (i32 3)), AR:$t))]>;
+def ADDX2: ADDX<0x09, "addx2", [(set AR:$r, (add AR:$t, (shl AR:$s, (i32 1))))]>;
+def ADDX4: ADDX<0x0A, "addx4", [(set AR:$r, (add AR:$t, (shl AR:$s, (i32 2))))]>;
+def ADDX8: ADDX<0x0B, "addx8", [(set AR:$r, (add AR:$t, (shl AR:$s, (i32 3))))]>;
+def SUBX2: ADDX<0x0D, "subx2", [(set AR:$r, (sub (shl AR:$t, (i32 1)), AR:$s))]>;
+def SUBX4: ADDX<0x0E, "subx4", [(set AR:$r, (sub (shl AR:$t, (i32 2)), AR:$s))]>;
+def SUBX8: ADDX<0x0F, "subx8", [(set AR:$r, (sub (shl AR:$t, (i32 3)), AR:$s))]>;
 
 def NEG: RRR_Inst<0x00, 0x00, 0x06, (outs AR:$r), (ins AR:$t),
      "neg\t$r, $t",
@@ -76,7 +76,7 @@ def SRA: RRR_Inst<0x00, 0x01, 0x0B, (outs AR:$r), (ins AR:$t, SARR:$sa),
 
 def SRL: RRR_Inst<0x00, 0x01, 0x09, (outs AR:$r), (ins AR:$t, SARR:$sa),
      "srl\t$r, $t",
-     [(set AR:$r, (sra AR:$t, SARR:$sa))]>;
+     [(set AR:$r, (srl AR:$t, SARR:$sa))]>;
 
 def SSL: RRR_Inst<0x00, 0x00, 0x04, (outs SARL:$sa), (ins AR:$s),
      "ssl\t$s", [(set SARL:$sa, AR:$s)]>
@@ -101,7 +101,7 @@ def SLLI: RRR_Inst<0x00, 0x01, 0x00, (outs AR:$r), (ins AR:$s, shimm5:$sa),
 
 def SRAI: RRR_Inst<0x00, 0x01, 0x02, (outs AR:$r), (ins AR:$t, shimm5:$sa),
      "srai\t$r, $t, $sa",
-     [(set AR:$r, (shl AR:$t, shimm5:$sa))]> 
+     [(set AR:$r, (sra AR:$t, shimm5:$sa))]> 
 {
   bits<5> sa;
 
@@ -111,7 +111,7 @@ def SRAI: RRR_Inst<0x00, 0x01, 0x02, (outs AR:$r), (ins AR:$t, shimm5:$sa),
 
 def SRLI: RRR_Inst<0x00, 0x01, 0x02, (outs AR:$r), (ins AR:$t, shimm4:$sa),
      "srli\t$r, $t, $sa",
-     [(set AR:$r, (shl AR:$t, shimm4:$sa))]> 
+     [(set AR:$r, (srl AR:$t, shimm4:$sa))]> 
 {
   bits<4> sa; 
 
@@ -175,7 +175,7 @@ let mayLoad = 1 in
   }
 }
 
-def L8UI: Load_RRI8<0x09, "l8ui", sextloadi8, mem8>;
+def L8UI: Load_RRI8<0x09, "l8ui", zextloadi8, mem8>;
 def L16SI: Load_RRI8<0x09, "l16si", sextloadi16, mem16>;
 def L16UI: Load_RRI8<0x01, "l16ui", zextloadi16, mem16>;
 def L32I: Load_RRI8<0x02, "l32i", load, mem32>;
@@ -189,7 +189,7 @@ def : Pat<(i32 (extloadi16 addr:$addr)), (L16UI addr:$addr)>;
 let mayStore = 1 in
 {
   def S32I_N: RRRN_Inst<0x8, (outs), (ins AR:$t, mem32n:$addr),
-              "s32.n\t$t, $addr", 
+              "s32i.n\t$t, $addr", 
               [(store AR:$t, addr:$addr)]>;
 
   class Store_II8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
@@ -222,6 +222,21 @@ def MOVLTZ : RRR_Inst<0x00, 0x03, 0x0A, (outs AR:$r), (ins AR:$s, AR:$t),
 def MOVGEZ : RRR_Inst<0x00, 0x03, 0x0B, (outs AR:$r), (ins AR:$s, AR:$t),
      "movgez\t$r, $s, $t",
      []>;
+
+def NSA : RRR_Inst<0x00, 0x00, 0x04, (outs AR:$t), (ins AR:$s),
+     "nsa\t$t, $s",
+     []>
+{
+  let r = 0xE;
+}
+
+def NSAU : RRR_Inst<0x00, 0x00, 0x04, (outs AR:$t), (ins AR:$s),
+     "nsau\t$t, $s",
+     []>
+{
+  let r = 0xF;
+}
+
 
 // LA is pseudo instruction for loading address from literal pool by L32R
 let usesCustomInserter = 1 in
@@ -284,7 +299,7 @@ def BLE: Branch_RR_rev<0x0A, "bge", setle>;
 def BLEU: Branch_RR_rev<0x0B, "bgeu", setule>;
 
 def BEQI: Branch_RI<0x02, "beqi", seteq>;
-def BNEI: Branch_RI<0x06, "beqi", setne>;
+def BNEI: Branch_RI<0x06, "bnei", setne>;
 def BGEI: Branch_RI<0x0E, "bgei", setge>;
 def BLTI: Branch_RI<0x0A, "blti", setlt>;
 def BGEUI: Branch_RI<0x0F, "bgeui", setuge>;
@@ -310,8 +325,8 @@ let isBranch = 1, isTerminator = 1, isBarrier = 1 in
   }
 }
 
-let isCall = 1, isBranch = 1, isTerminator = 1, isBarrier = 1, 
-   Defs = [a0, a2, a3, a4, a5] in 
+let isCall = 1,
+   Defs = [sp] in 
 {
   def CALL0: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
           "call0\t$offset", 
@@ -481,9 +496,110 @@ def SELECT: Pseudo<(outs AR:$dst), (ins AR:$lhs, AR:$rhs, AR:$t, AR:$f, i32imm:$
                                   "!select $dst, $lhs, $rhs, $t, $f, $cond",
                                   [(set AR:$dst, (Xtensa_select_cc AR:$lhs, AR:$rhs, AR:$t, AR:$f, imm:$cond))]>;
 
+def SETCC_EQZ: Pseudo<(outs AR:$dst), (ins AR:$src),
+                                  "!setcc_eqz $dst, $src",
+                                  [(set AR:$dst, (seteq AR:$src, (i32 0)))]>;
+
+def SETCC_NEZ: Pseudo<(outs AR:$dst), (ins AR:$src),
+                                  "!setcc_eqz $dst, $src",
+                                  [(set AR:$dst, (setne AR:$src, (i32 0)))]>;
+
 }
 //def : Pat<(select (i32 (setne AR:$lhs, 0)), AR:$t, AR:$f),
 //        (SELECT_CC AR:$lhs, AR:$t, AR:$f)>;
   
 //def : Pat<(select (i32 (seteq AR:$lhs, 0)), AR:$t, AR:$f),
 //        (SELECT_CC AR:$lhs, AR:$f, AR:$t)>;
+
+//===----------------------------------------------------------------------===//
+// Floating-Point Instructions
+//===----------------------------------------------------------------------===//
+
+class FPArith_RRR<bits<4> oper2, bits<4> oper1, string instrAsm, 
+    SDPatternOperator opNode, bit isComm = 0>:
+  RRR_Inst<0x00, oper1, oper2, (outs FPR:$r), (ins FPR:$s, FPR:$t),
+     instrAsm#"\t$r, $s, $t",
+     [(set FPR:$r, (opNode FPR:$s, FPR:$t))]> 
+{
+  let isCommutable = isComm;
+  let isReMaterializable = 0;
+}
+
+def ADD_S: FPArith_RRR<0x00, 0x0A, "add.s", fadd, 1>;
+def SUB_S: FPArith_RRR<0x01, 0x0A, "sub.s", fsub>;
+def MUL_S: FPArith_RRR<0x02, 0x0A, "and.s", fmul, 1>;
+//def MADD_S: FPArith_RRR<0x04, 0x0A, "madd.s", fma, 1>;
+//def MSUB_S: FPArith_RRR<0x06, 0x0A, "msub.s", fmsub, 1>;
+
+
+def ABS_S: RRR_Inst<0x00, 0x0A, 0x0F, (outs FPR:$r), (ins FPR:$s),
+     "abs.s\t$r, $s",
+     [(set FPR:$r, (fabs FPR:$s))]> 
+{
+  let t = 0x01;
+}  
+
+def NEG_S: RRR_Inst<0x00, 0x0A, 0x0F, (outs FPR:$r), (ins FPR:$s),
+     "neg.s\t$r, $s",
+     [(set FPR:$r, (fneg FPR:$s))]> 
+{
+  let t = 0x06;
+} 
+
+def TRUNC_S: RRR_Inst<0x00, 0x0A, 0x09, (outs AR:$r), (ins FPR:$s),
+     "trunc.s\t$r, $s",
+     [(set AR:$r, (fp_to_sint FPR:$s))]> 
+{
+  let t = 0x00;
+} 
+
+def UTRUNC_S: RRR_Inst<0x00, 0x0A, 0x0e, (outs AR:$r), (ins FPR:$s),
+     "utrunc.s\t$r, $s",
+     [(set AR:$r, (fp_to_uint FPR:$s))]> 
+{
+  let t = 0x00;
+} 
+
+def FLOAT_S: RRR_Inst<0x00, 0x0A, 0x0c, (outs FPR:$r), (ins AR:$s),
+     "float.s\t$r, $s",
+     [(set FPR:$r, (sint_to_fp AR:$s))]> 
+{
+  let t = 0x00;
+} 
+
+def UFLOAT_S: RRR_Inst<0x00, 0x0A, 0x0c, (outs FPR:$r), (ins AR:$s),
+     "ufloat.s\t$r, $s",
+     [(set FPR:$r, (uint_to_fp AR:$s))]> 
+{
+  let t = 0x00;
+} 
+
+// Load instructions
+let mayLoad = 1 in
+{
+  class LoadF_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
+      Operand memOp>: RRI8_Inst<0x03, (outs FPR:$t), (ins memOp:$addr), 
+                instrAsm#"\t\t$t, $addr", 
+                [(set FPR:$t, (opNode addr:$addr))]>
+  {
+    let r = oper;
+  }
+}
+
+def L32F: LoadF_RRI8<0x00, "lsi", load, mem32>;
+
+// Store instructions
+let mayStore = 1 in
+{
+
+  class StoreF_II8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
+      Operand memOp>: RRI8_Inst<0x03, (outs), (ins FPR:$t, memOp:$addr),
+              instrAsm#"\t\t$t, $addr", 
+              [(opNode FPR:$t, addr:$addr)]>
+  {
+    let r = oper;
+  }
+
+}
+
+def S32F: StoreF_II8<0x04, "ssi", store, mem32>;

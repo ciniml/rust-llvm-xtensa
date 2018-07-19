@@ -29,7 +29,9 @@ public:
   explicit XtensaFunctionInfo(MachineFunction &MF)
     : MF(MF), SavedGPRFrameSize(0), LowSavedGPR(0), HighSavedGPR(0), VarArgsFirstGPR(0),
       VarArgsFirstFPR(0), VarArgsFrameIndex(0), RegSaveFrameIndex(0),
-      ManipulatesSP(false) {}
+      ManipulatesSP(false) {
+    MF.setAlignment(2);
+  }
 
   // Get and set the number of bytes allocated by generic code to store
   // call-saved GPRs.

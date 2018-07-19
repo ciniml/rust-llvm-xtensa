@@ -72,6 +72,7 @@ public:
   bool mustAddCurrentAddress() const { return AddCurrentAddress; }
 
   unsigned getLabelId() const { return LabelId; }
+  void setLabelId(unsigned id) { LabelId = id; }
 
   bool isGlobalValue() const { return Kind == XtensaCP::CPValue; }
   bool isExtSymbol() const { return Kind == XtensaCP::CPExtSymbol; }

@@ -28,6 +28,7 @@ public:
     return "Xtensa Assembly Printer";
   }
   void EmitInstruction(const MachineInstr *MI) override;
+  void EmitConstantPool() override;
   void EmitMachineConstantPoolValue(MachineConstantPoolValue *MCPV) override;
   void printOperand(const MachineInstr *MI, int opNum, raw_ostream &O);
   bool PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,

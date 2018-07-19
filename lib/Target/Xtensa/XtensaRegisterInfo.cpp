@@ -17,6 +17,9 @@ using namespace llvm;
 // WinABI callee save list - empty
 static const MCPhysReg CSRWE_Xtensa_SaveList[] = {0};
 
+// WinABI call preserved mask - empty
+static const uint32_t CSRWE_Xtensa_RegMask[] = {0};
+
 XtensaRegisterInfo::XtensaRegisterInfo(const XtensaSubtarget &STI)
     : XtensaGenRegisterInfo(Xtensa::a0), Subtarget(STI) {}
 
@@ -24,7 +27,7 @@ const uint16_t*
 XtensaRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const 
 {
   if (Subtarget.isWinABI())
-    return CSRW_Xtensa_SaveList;
+    return CSRWE_Xtensa_SaveList;  // CSRW_Xtensa_SaveList ?
   else if(Subtarget.isESP8266())
     return CSR_Xtensa_SaveList;
   else if (Subtarget.isESP32())
@@ -35,7 +38,9 @@ const uint32_t*
 XtensaRegisterInfo::getCallPreservedMask(const MachineFunction &MF,
     CallingConv::ID) const 
 {
-  return CSR_Xtensa_RegMask;
+  if (Subtarget.isWinABI())
+    return CSRWE_Xtensa_RegMask;
+  else return CSR_Xtensa_RegMask;
 }
 
 BitVector

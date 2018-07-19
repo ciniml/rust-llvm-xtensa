@@ -13,6 +13,7 @@ XtensaMCAsmInfo::XtensaMCAsmInfo()
   CommentString = "#";
   ZeroDirective = "\t.space\t";
   Data64bitsDirective = "\t.quad\t";
+  GlobalDirective = "\t.global\t";
   UsesELFSectionDirectiveForBSS = true;
   SupportsDebugInformation = true;
   ExceptionsType = ExceptionHandling::DwarfCFI;

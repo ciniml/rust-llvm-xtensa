@@ -73,7 +73,7 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
                                        MachineBasicBlock &MBB) const {
   assert(&MBB == &MF.front() && "Shrink-wrapping not yet implemented");
   MachineFrameInfo &MFI = MF.getFrameInfo();
-  //XtensaFunctionInfo *XtensaFI = MF.getInfo<XtensaFunctionInfo>();
+  XtensaFunctionInfo *XtensaFI = MF.getInfo<XtensaFunctionInfo>();
   const XtensaRegisterInfo *RegInfo = static_cast<const XtensaRegisterInfo *>(
       MF.getSubtarget().getRegisterInfo());
   const XtensaInstrInfo &TII =
@@ -83,7 +83,7 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
   const XtensaSubtarget &STI = MF.getSubtarget<XtensaSubtarget>();
   unsigned SP = Xtensa::sp;
   unsigned FP = RegInfo->getFrameRegister(MF);
-  //unsigned ADD = Xtensa::ADD;
+  unsigned ADD = Xtensa::ADD;
   MachineModuleInfo &MMI = MF.getMMI();
   const MCRegisterInfo *MRI = MMI.getContext().getRegisterInfo();
 
@@ -91,6 +91,9 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
   uint64_t StackSize = MFI.getStackSize();
 
   if (STI.isWinABI()) {
+    StackSize += 32;
+    // Round up StackSize to 8*N
+    StackSize += (8 - StackSize) & 0x7;
     if (StackSize <= 32760) {
       BuildMI(MBB, MBBI, dl, TII.get(Xtensa::ENTRY))
           .addReg(SP)
@@ -175,7 +178,7 @@ void XtensaFrameLowering::emitEpilogue(MachineFunction &MF,
                                        MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
   MachineFrameInfo &MFI = MF.getFrameInfo();
-  //XtensaFunctionInfo *XtensaFI = MF.getInfo<XtensaFunctionInfo>();
+  XtensaFunctionInfo *XtensaFI = MF.getInfo<XtensaFunctionInfo>();
   const XtensaRegisterInfo *RegInfo = static_cast<const XtensaRegisterInfo *>(
       MF.getSubtarget().getRegisterInfo());
   const XtensaInstrInfo &TII =
@@ -276,7 +279,7 @@ MachineBasicBlock::iterator XtensaFrameLowering::eliminateCallFramePseudoInstr(
     MachineBasicBlock::iterator I) const {
   const XtensaInstrInfo &TII =
       *static_cast<const XtensaInstrInfo *>(MF.getSubtarget().getInstrInfo());
-  //const XtensaSubtarget &STI = MF.getSubtarget<XtensaSubtarget>();
+  const XtensaSubtarget &STI = MF.getSubtarget<XtensaSubtarget>();
 
   if (!hasReservedCallFrame(MF)) {
     int64_t Amount = I->getOperand(0).getImm();
@@ -296,7 +299,7 @@ void XtensaFrameLowering::determineCalleeSaves(MachineFunction &MF,
                                                RegScavenger *RS) const {
   const XtensaSubtarget &STI = MF.getSubtarget<XtensaSubtarget>();
   MachineFrameInfo &MFI = MF.getFrameInfo();
-  //XtensaFunctionInfo *XtensaFI = MF.getInfo<XtensaFunctionInfo>();
+  XtensaFunctionInfo *XtensaFI = MF.getInfo<XtensaFunctionInfo>();
   const XtensaRegisterInfo *RegInfo = static_cast<const XtensaRegisterInfo *>(
       MF.getSubtarget().getRegisterInfo());
   unsigned FP = RegInfo->getFrameRegister(MF);
