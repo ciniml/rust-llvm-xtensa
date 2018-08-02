@@ -1,7 +1,7 @@
 #include "XtensaTargetMachine.h"
-#include "llvm/CodeGen/SelectionDAGISel.h"
-#include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/CodeGen/MachineRegisterInfo.h"
+#include "llvm/CodeGen/SelectionDAGISel.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -9,24 +9,18 @@ using namespace llvm;
 
 #define DEBUG_TYPE "xtensa-isel"
 
-namespace 
-{
+namespace {
 // Used to build addressing modes.
-struct XtensaAddressingMode 
-{
+struct XtensaAddressingMode {
   // The shape of the address.
-  enum AddrForm 
-  {
+  enum AddrForm {
     // base+offset
     FormBO
   };
   AddrForm Form;
 
-  // The type of displacement. 
-  enum OffRange 
-  {
-    Off12Only
-  };
+  // The type of displacement.
+  enum OffRange { Off12Only };
   OffRange OffR;
 
   // The parts of the address.  The address is equivalent to:
@@ -36,10 +30,9 @@ struct XtensaAddressingMode
   int64_t Offset;
 
   XtensaAddressingMode(AddrForm form, OffRange offr)
-    : Form(form), OffR(offr), Base(), Offset(0) {}
+      : Form(form), OffR(offr), Base(), Offset(0) {}
 
-  void dump() 
-  {
+  void dump() {
     errs() << "XtensaAddressingMode " << this << '\n';
 
     errs() << " Base ";
@@ -52,20 +45,17 @@ struct XtensaAddressingMode
   }
 };
 
-class XtensaDAGToDAGISel : public SelectionDAGISel 
-{
+class XtensaDAGToDAGISel : public SelectionDAGISel {
   const XtensaTargetLowering &Lowering;
   const XtensaSubtarget &Subtarget;
 
   // Used by XtensaOperands.td to create integer constants.
-  inline SDValue getImm(const SDNode *Node, uint64_t Imm) 
-  {
+  inline SDValue getImm(const SDNode *Node, uint64_t Imm) {
     return CurDAG->getTargetConstant(Imm, SDLoc(Node), Node->getValueType(0));
   }
   /// getI32Imm - Return a target constant with the specified value, of type
   /// i32.
-  SDValue getI32Imm(unsigned Imm, SDLoc DL) 
-  {
+  SDValue getI32Imm(unsigned Imm, SDLoc DL) {
     return CurDAG->getTargetConstant(Imm, DL, MVT::i32);
   }
 
@@ -77,83 +67,77 @@ class XtensaDAGToDAGISel : public SelectionDAGISel
   bool selectAddress(SDValue N, XtensaAddressingMode &AM);
 
   // Extract individual target operands from matched address AM.
-  void getAddressOperands(const XtensaAddressingMode &AM, EVT VT,
-                          SDValue &Base, SDValue &Disp);
-  void getAddressOperands(const XtensaAddressingMode &AM, EVT VT,
-                          SDValue &Base, SDValue &Disp, SDValue &Index);
+  void getAddressOperands(const XtensaAddressingMode &AM, EVT VT, SDValue &Base,
+                          SDValue &Disp);
+  void getAddressOperands(const XtensaAddressingMode &AM, EVT VT, SDValue &Base,
+                          SDValue &Disp, SDValue &Index);
 
-  bool selectMemRegAddr(SDValue Addr, SDValue &Offset, SDValue &Base) 
-  {
+  bool selectMemRegAddr(SDValue Addr, SDValue &Offset, SDValue &Base) {
     EVT ValTy = Addr.getValueType();
-
-    // if Address is FI, get the TargetFrameIndex.
-    if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) 
-    {
-      Base   = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
+	 
+     // if Address is FI, get the TargetFrameIndex.
+    if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
+      Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
       Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), ValTy);
       return true;
     }
 
-    if (TM.getRelocationModel() != Reloc::PIC_) 
-    {
+    if (TM.getRelocationModel() != Reloc::PIC_) {
       if ((Addr.getOpcode() == ISD::TargetExternalSymbol ||
-          Addr.getOpcode() == ISD::TargetGlobalAddress))
+           Addr.getOpcode() == ISD::TargetGlobalAddress))
         return false;
     }
 
     // Addresses of the form FI+const or FI|const
     bool Valid = false;
-    if (CurDAG->isBaseWithConstantOffset(Addr)) 
-    {
+    if (CurDAG->isBaseWithConstantOffset(Addr)) {
       ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1));
       int64_t OffsetVal = CN->getSExtValue();
 
-	  switch (ValTy.getSizeInBits()) { 
-	    case 8:
-          Valid = (OffsetVal >= 0 && OffsetVal <= 255);
-          break;
-        case 16:
-          Valid = (OffsetVal >= 0 && OffsetVal <= 510); 
-          break;
-        case 32:
-          Valid = (OffsetVal >= 0 && OffsetVal <= 1020);	       
-          break;
-        default:
-          break;		 
-	  }
+      switch (ValTy.getSizeInBits()) {
+      case 8:
+        Valid = (OffsetVal >= 0 && OffsetVal <= 255);
+        break;
+      case 16:
+        Valid = (OffsetVal >= 0 && OffsetVal <= 510);
+        break;
+      case 32:
+        Valid = (OffsetVal >= 0 && OffsetVal <= 1020);
+        break;
+      default:
+        break;
+      }
 
       if (Valid) {
-  
+
         // If the first operand is a FI, get the TargetFI Node
-        if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>
-                                    (Addr.getOperand(0)))
+        if (FrameIndexSDNode *FIN =
+                dyn_cast<FrameIndexSDNode>(Addr.getOperand(0)))
           Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
         else
           Base = Addr.getOperand(0);
-  
-        Offset = CurDAG->getTargetConstant(CN->getZExtValue(), SDLoc(Addr), ValTy);
+
+        Offset =
+            CurDAG->getTargetConstant(CN->getZExtValue(), SDLoc(Addr), ValTy);
         return true;
       }
     }
 
-    //Last case
+    // Last case
     Base = Addr;
     Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), Addr.getValueType());
     return true;
   }
 
-  bool selectRegAddr(SDValue Addr, SDValue &Base) 
-  {
-    //always just register
+  bool selectRegAddr(SDValue Addr, SDValue &Base) {
+    // always just register
     Base = Addr;
     return true;
   }
 
   // PC-relative address matching routines used by XtensaOperands.td.
-  bool selectPCRelAddress(SDValue Addr, SDValue &Target) 
-  {
-    if (Addr.getOpcode() == XtensaISD::PCREL_WRAPPER) 
-    {
+  bool selectPCRelAddress(SDValue Addr, SDValue &Target) {
+    if (Addr.getOpcode() == XtensaISD::PCREL_WRAPPER) {
       Target = Addr.getOperand(0);
       return true;
     }
@@ -172,9 +156,9 @@ class XtensaDAGToDAGISel : public SelectionDAGISel
 
 public:
   XtensaDAGToDAGISel(XtensaTargetMachine &TM, CodeGenOpt::Level OptLevel)
-    : SelectionDAGISel(TM, OptLevel),
-      Lowering(*TM.getSubtargetImpl()->getTargetLowering()),
-      Subtarget(*TM.getSubtargetImpl()) { }
+      : SelectionDAGISel(TM, OptLevel),
+        Lowering(*TM.getSubtargetImpl()->getTargetLowering()),
+        Subtarget(*TM.getSubtargetImpl()) {}
 
   // Override MachineFunctionPass.
   StringRef getPassName() const override {
@@ -188,13 +172,12 @@ public:
   bool SelectInlineAsmMemoryOperand(const SDValue &Op, unsigned ConstraintID,
                                     std::vector<SDValue> &OutOps) override;
 
-  // Include the pieces autogenerated from the target description.
-  #include "XtensaGenDAGISel.inc"
+// Include the pieces autogenerated from the target description.
+#include "XtensaGenDAGISel.inc"
 };
 } // end anonymous namespace
 
-bool XtensaDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) 
-{
+bool XtensaDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) {
   bool ret = SelectionDAGISel::runOnMachineFunction(MF);
 
   processFunctionAfterISel(MF);
@@ -203,18 +186,15 @@ bool XtensaDAGToDAGISel::runOnMachineFunction(MachineFunction &MF)
 }
 
 FunctionPass *llvm::createXtensaISelDag(XtensaTargetMachine &TM,
-                                         CodeGenOpt::Level OptLevel) 
-{
+                                        CodeGenOpt::Level OptLevel) {
   return new XtensaDAGToDAGISel(TM, OptLevel);
 }
 
 // Return true if Val should be selected as a displacement for an address
 // with range DR.  Here we're interested in the range of both the instruction
 // described by DR and of any pairing instruction.
-static bool selectOffset(XtensaAddressingMode::OffRange OffR, int64_t Val) 
-{
-  switch (OffR) 
-  {
+static bool selectOffset(XtensaAddressingMode::OffRange OffR, int64_t Val) {
+  switch (OffR) {
   case XtensaAddressingMode::Off12Only:
     return isInt<12>(Val);
   }
@@ -223,14 +203,12 @@ static bool selectOffset(XtensaAddressingMode::OffRange OffR, int64_t Val)
 
 // The base or index of AM is equivalent to Op0 + Op1, where IsBase selects
 // between the base and index.  Try to fold Op1 into AM's displacement.
-static bool expandOffset(XtensaAddressingMode &AM, bool IsBase,
-                       SDValue Op0, ConstantSDNode *Op1) 
-{
+static bool expandOffset(XtensaAddressingMode &AM, bool IsBase, SDValue Op0,
+                         ConstantSDNode *Op1) {
   // First try adjusting the displacement.
   int64_t TestOffset = AM.Offset + Op1->getSExtValue();
-  if (selectOffset(AM.OffR, TestOffset)) 
-  {
-    //changeComponent(AM, IsBase, Op0);
+  if (selectOffset(AM.OffR, TestOffset)) {
+    // changeComponent(AM, IsBase, Op0);
     AM.Base = Op0;
     AM.Offset = TestOffset;
     return true;
@@ -241,18 +219,15 @@ static bool expandOffset(XtensaAddressingMode &AM, bool IsBase,
   return false;
 }
 
-bool XtensaDAGToDAGISel::expandAddress(XtensaAddressingMode &AM,
-                                        bool IsBase) 
-{
-  //SDValue N = IsBase ? AM.Base : AM.Index;
+bool XtensaDAGToDAGISel::expandAddress(XtensaAddressingMode &AM, bool IsBase) {
+  // SDValue N = IsBase ? AM.Base : AM.Index;
   SDValue N = AM.Base;
   unsigned Opcode = N.getOpcode();
   if (Opcode == ISD::TRUNCATE) {
     N = N.getOperand(0);
     Opcode = N.getOpcode();
   }
-  if (Opcode == ISD::ADD || CurDAG->isBaseWithConstantOffset(N)) 
-  {
+  if (Opcode == ISD::ADD || CurDAG->isBaseWithConstantOffset(N)) {
     SDValue Op0 = N.getOperand(0);
     SDValue Op1 = N.getOperand(1);
 
@@ -263,18 +238,15 @@ bool XtensaDAGToDAGISel::expandAddress(XtensaAddressingMode &AM,
       return expandOffset(AM, IsBase, Op1, cast<ConstantSDNode>(Op0));
     if (Op1Code == ISD::Constant)
       return expandOffset(AM, IsBase, Op0, cast<ConstantSDNode>(Op1));
-
   }
   return false;
 }
 
 // Return true if an instruction with displacement range DR should be
 // used for displacement value Val.  selectDisp(DR, Val) must already hold.
-static bool isValidOffset(XtensaAddressingMode::OffRange OffR, int64_t Val) 
-{
+static bool isValidOffset(XtensaAddressingMode::OffRange OffR, int64_t Val) {
   assert(selectOffset(OffR, Val) && "Invalid displacement");
-  switch (OffR) 
-  {
+  switch (OffR) {
   case XtensaAddressingMode::Off12Only:
     return true;
   }
@@ -282,17 +254,15 @@ static bool isValidOffset(XtensaAddressingMode::OffRange OffR, int64_t Val)
 }
 
 // Return true if Addr is suitable for AM, updating AM if so.
-bool XtensaDAGToDAGISel::selectAddress(SDValue Addr,
-                                        XtensaAddressingMode &AM) 
-{
+bool XtensaDAGToDAGISel::selectAddress(SDValue Addr, XtensaAddressingMode &AM) {
   // Start out assuming that the address will need to be loaded separately,
   // then try to extend it as much as we can.
   AM.Base = Addr;
 
   // First try treating the address as a constant.
   if (Addr.getOpcode() == ISD::Constant &&
-      expandOffset(AM, true, SDValue(), cast<ConstantSDNode>(Addr)))
-  { }
+      expandOffset(AM, true, SDValue(), cast<ConstantSDNode>(Addr))) {
+  }
 
   // Reject cases where the other instruction in a pair should be used.
   if (!isValidOffset(AM.OffR, AM.Offset))
@@ -307,34 +277,28 @@ bool XtensaDAGToDAGISel::selectAddress(SDValue Addr,
 // Note that this does *not* preserve the uniqueness of node IDs!
 // The selection DAG must no longer depend on their uniqueness when this
 // function is used.
-static void insertDAGNode(SelectionDAG *DAG, SDNode *Pos, SDValue N) 
-{
+static void insertDAGNode(SelectionDAG *DAG, SDNode *Pos, SDValue N) {
   if (N.getNode()->getNodeId() == -1 ||
-      N.getNode()->getNodeId() > Pos->getNodeId()) 
-  {
+      N.getNode()->getNodeId() > Pos->getNodeId()) {
     DAG->RepositionNode(Pos->getIterator(), N.getNode());
     N.getNode()->setNodeId(Pos->getNodeId());
   }
 }
 
 void XtensaDAGToDAGISel::getAddressOperands(const XtensaAddressingMode &AM,
-                                             EVT VT, SDValue &Base,
-                                             SDValue &Offset) 
-{
+                                            EVT VT, SDValue &Base,
+                                            SDValue &Offset) {
   Base = AM.Base;
   if (!Base.getNode())
     // Register 0 means "no base".  This is mostly useful for shifts.
     Base = CurDAG->getRegister(0, VT);
-  else if (Base.getOpcode() == ISD::FrameIndex) 
-  {
+  else if (Base.getOpcode() == ISD::FrameIndex) {
     // Lower a FrameIndex to a TargetFrameIndex.
     int64_t FrameIndex = cast<FrameIndexSDNode>(Base)->getIndex();
     Offset = CurDAG->getTargetFrameIndex(FrameIndex, VT);
     Base = CurDAG->getTargetConstant(AM.Offset, SDLoc(Base), VT);
     return;
-  } 
-  else if (Base.getValueType() != VT) 
-  {
+  } else if (Base.getValueType() != VT) {
     // Truncate values from i64 to i32, for shifts.
     assert(VT == MVT::i32 && Base.getValueType() == MVT::i64 &&
            "Unexpected truncation");
@@ -348,11 +312,9 @@ void XtensaDAGToDAGISel::getAddressOperands(const XtensaAddressingMode &AM,
   Offset = CurDAG->getTargetConstant(AM.Offset, SDLoc(Base), VT);
 }
 
-
 SDNode *XtensaDAGToDAGISel::splitLargeImmediate(unsigned Opcode, SDNode *Node,
-                                                 SDValue Op0, uint64_t UpperVal,
-                                                 uint64_t LowerVal) 
-{
+                                                SDValue Op0, uint64_t UpperVal,
+                                                uint64_t LowerVal) {
   EVT VT = Node->getValueType(0);
   SDLoc DL(Node);
   SDValue Upper = CurDAG->getConstant(UpperVal, DL, VT);
@@ -390,44 +352,42 @@ SDNode *XtensaDAGToDAGISel::splitLargeImmediate(unsigned Opcode, SDNode *Node,
   CurDAG->RemoveDeadNode(Node);
 
   SelectCode(Or.getNode());
-  return 0;  // TODO
+  return 0; // TODO
 #endif
 }
 
-void XtensaDAGToDAGISel::Select(SDNode *Node) 
-{
+void XtensaDAGToDAGISel::Select(SDNode *Node) {
   SDLoc DL(Node);
   // Dump information about the Node being selected
   DEBUG(errs() << "Selecting: "; Node->dump(CurDAG); errs() << "\n");
 
   // If we have a custom node, we already have selected!
-  if (Node->isMachineOpcode()) 
-  {
+  if (Node->isMachineOpcode()) {
     DEBUG(errs() << "== "; Node->dump(CurDAG); errs() << "\n");
     return;
   }
 
   unsigned Opcode = Node->getOpcode();
-  switch (Opcode) 
-  {
-  case ISD::FrameIndex: 
-  {
+  /*
+  switch (Opcode) {
+  case ISD::FrameIndex: {
     SDValue imm = CurDAG->getTargetConstant(0, DL, MVT::i32);
     int FI = cast<FrameIndexSDNode>(Node)->getIndex();
-    SDValue TFI =
-        CurDAG->getTargetFrameIndex(FI, getTargetLowering()->getPointerTy(CurDAG->getDataLayout()));
+    SDValue TFI = CurDAG->getTargetFrameIndex(
+        FI, getTargetLowering()->getPointerTy(CurDAG->getDataLayout()));
     unsigned Opc = Xtensa::ADDI;
     EVT VT = MVT::i32;
-    
-    if(Node->hasOneUse()) //don't create a new node just morph this one
-      //return CurDAG->SelectNodeTo(Node, Opc, VT, TFI, imm);
+
+    if (Node->hasOneUse()) // don't create a new node just morph this one
+      // return CurDAG->SelectNodeTo(Node, Opc, VT, TFI, imm);
       CurDAG->SelectNodeTo(Node, Opc, VT, TFI, imm);
-    //return CurDAG->getMachineNode(Opc, DL, VT, TFI, imm);
+    // return CurDAG->getMachineNode(Opc, DL, VT, TFI, imm);
     CurDAG->getMachineNode(Opc, DL, VT, TFI, imm);
   }
-  }//end special selections
+  } // end special selections
+  */
 
-  // Select the default instruction
+    // Select the default instruction
 #if 0
   SDNode *ResNode = SelectCode(Node);
 
@@ -443,13 +403,9 @@ void XtensaDAGToDAGISel::Select(SDNode *Node)
   SelectCode(Node);
 }
 
-bool XtensaDAGToDAGISel::
-SelectInlineAsmMemoryOperand(const SDValue &Op,
-                             unsigned ConstraintID,
-                             std::vector<SDValue> &OutOps) 
-{
-  switch(ConstraintID) 
-  {
+bool XtensaDAGToDAGISel::SelectInlineAsmMemoryOperand(
+    const SDValue &Op, unsigned ConstraintID, std::vector<SDValue> &OutOps) {
+  switch (ConstraintID) {
   default:
     llvm_unreachable("Unexpected asm memory constraint");
   case InlineAsm::Constraint_m:
@@ -463,13 +419,10 @@ SelectInlineAsmMemoryOperand(const SDValue &Op,
   return false;
 }
 
-void XtensaDAGToDAGISel::processFunctionAfterISel(MachineFunction &MF) 
-{
-  for (auto &MBB: MF)
-  {  
-    for (auto &I: MBB) 
-    {
+void XtensaDAGToDAGISel::processFunctionAfterISel(MachineFunction &MF) {
+  for (auto &MBB : MF) {
+    for (auto &I : MBB) {
       // TODO something useful for future
     }
-  }  
+  }
 }

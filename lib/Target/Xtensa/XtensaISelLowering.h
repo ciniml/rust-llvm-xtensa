@@ -59,6 +59,19 @@ namespace XtensaISD
     SELECT,
     SELECT_CC,
 
+	SELECT_CC_T,
+	SELECT_CC_F,
+
+	BR_CC_T,
+	BR_CC_F,
+
+	CMPEQ,
+	CMPLE,
+	CMPLT,
+
+	MOVF,
+	MOVT,
+
     FENCE
   };
 }
@@ -148,6 +161,8 @@ private:
 
   SDValue lowerBR_JT(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerImmediate(SDValue Op, SelectionDAG &DAG) const;
+  SDValue lowerBR_CC(SDValue Op, SelectionDAG &DAG) const;
+  SDValue lowerSETCC(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerRETURNADDR(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerGlobalAddress(SDValue Op,

@@ -37,6 +37,16 @@ void XtensaAsmPrinter::EmitConstantPool() {
           static_cast<XtensaConstantPoolValue *>(CPE.Val.MachineCPVal);
       ACPV->setLabelId(i);
       EmitMachineConstantPoolValue(CPE.Val.MachineCPVal);
+    } else {
+      MCSymbol *LblSym = GetCPISymbol(i);
+      const ConstantInt *CVal = static_cast<const ConstantInt *>(CPE.Val.ConstVal);
+
+      std::string str("\t.literal ");
+      str += LblSym->getName();
+      str += ", ";
+      str += CVal->getValue().toString(10, true);
+
+      OutStreamer->EmitRawText(str);   
     }
   }
 }
@@ -68,8 +78,20 @@ void XtensaAsmPrinter::EmitMachineConstantPoolValue(
     MCSym = this->GetJTISymbol(idx, false);
   } else {
     assert(ACPV->isExtSymbol() && "unrecognized constant pool value");
-    const char *Sym = cast<XtensaConstantPoolSymbol>(ACPV)->getSymbol();
-    MCSym = GetExternalSymbolSymbol(Sym);
+    XtensaConstantPoolSymbol *XtensaSym = cast<XtensaConstantPoolSymbol>(ACPV);
+    const char *Sym = XtensaSym->getSymbol();
+	// TODO it's a trick to distinguish static references and generated rodata references
+	// Some clear method required
+    if (strchr(Sym, '.'))
+    {
+      char buf[256];
+      if (XtensaSym->isPrivateLinkage())
+        sprintf(buf, ".L%s", Sym);
+      else
+        sprintf(buf, "%s", Sym);
+      MCSym = GetExternalSymbolSymbol(buf);
+    } else
+      MCSym = GetExternalSymbolSymbol(Sym);
   }
 
   // Create an MCSymbol for the reference.

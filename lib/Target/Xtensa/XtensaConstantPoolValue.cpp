@@ -149,17 +149,18 @@ void XtensaConstantPoolConstant::print(raw_ostream &O) const
 }
 
 XtensaConstantPoolSymbol::XtensaConstantPoolSymbol(LLVMContext &C, const char *s, unsigned id,
-                                bool AddCurrentAddress)
-  : XtensaConstantPoolValue(C, id, XtensaCP::CPExtSymbol,
-                         AddCurrentAddress), S(s) 
+                                                   bool AddCurrentAddress, bool PrivLinkage)
+  : XtensaConstantPoolValue(C, id, XtensaCP::CPExtSymbol, AddCurrentAddress),
+      S(s), PrivateLinkage(PrivLinkage) 
 {
 }
 
 XtensaConstantPoolSymbol *
-XtensaConstantPoolSymbol::Create(LLVMContext &C, const char *s, unsigned ID)
+XtensaConstantPoolSymbol::Create(LLVMContext &C, const char *s, unsigned ID,
+                                 bool PrivLinkage)
                                  
 {
-  return new XtensaConstantPoolSymbol(C, s, ID, false);
+  return new XtensaConstantPoolSymbol(C, s, ID, false, PrivLinkage);
 }
 
 int XtensaConstantPoolSymbol::getExistingMachineCPValue(MachineConstantPool *CP,

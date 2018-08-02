@@ -1,4 +1,5 @@
-//===-- XtensaAsmParser.cpp - Parse Xtensa assembly to MCInst instructions --===//
+//===-- XtensaAsmParser.cpp - Parse Xtensa assembly to MCInst instructions
+//--===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -21,17 +22,16 @@
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/TargetRegistry.h"
- 
+
 using namespace llvm;
 
 #define DEBUG_TYPE "xtensav-asm-parser"
 
 struct XtensaOperand;
 
-class XtensaAsmParser : public MCTargetAsmParser 
-{
+class XtensaAsmParser : public MCTargetAsmParser {
   SMLoc getLoc() const { return getParser().getTok().getLoc(); }
-     
+
   // Override MCTargetAsmParser.
   bool ParseDirective(AsmToken DirectiveID) override;
   bool ParseRegister(unsigned &RegNo, SMLoc &StartLoc, SMLoc &EndLoc) override;
@@ -40,13 +40,13 @@ class XtensaAsmParser : public MCTargetAsmParser
   bool MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
                                OperandVector &Operands, MCStreamer &Out,
                                uint64_t &ErrorInfo,
-                               bool MatchingInlineAsm) override;  
+                               bool MatchingInlineAsm) override;
   unsigned validateTargetOperandClass(MCParsedAsmOperand &Op,
                                       unsigned Kind) override;
 
   bool generateImmOutOfRangeError(OperandVector &Operands, uint64_t ErrorInfo,
                                   int Lower, int Upper, Twine Msg);
-							   
+
 // Auto-generated instruction matching functions
 #define GET_ASSEMBLER_HEADER
 #include "XtensaGenAsmMatcher.inc"
@@ -66,17 +66,16 @@ public:
 #include "XtensaGenAsmMatcher.inc"
 #undef GET_OPERAND_DIAGNOSTIC_TYPES
   };
-/*
-  static bool classifySymbolRef(const MCExpr *Expr,
-                                XtensaMCExpr::VariantKind &Kind,
-                                int64_t &Addend);
-*/
+  /*
+    static bool classifySymbolRef(const MCExpr *Expr,
+                                  XtensaMCExpr::VariantKind &Kind,
+                                  int64_t &Addend);
+  */
   XtensaAsmParser(const MCSubtargetInfo &STI, MCAsmParser &Parser,
-                 const MCInstrInfo &MII, const MCTargetOptions &Options)
+                  const MCInstrInfo &MII, const MCTargetOptions &Options)
       : MCTargetAsmParser(Options, STI, MII) {
     setAvailableFeatures(ComputeAvailableFeatures(STI.getFeatureBits()));
   }
- 
 };
 
 // Return true if Expr is in the range [MinValue, MaxValue].
@@ -140,53 +139,97 @@ public:
     return Kind == Immediate && inRange(getImm(), MinValue, MaxValue);
   }
 
-  bool isimm12() const {
-    return isImm(-2048, 2047); 
+  bool isimm12() const { return isImm(-2048, 2047); }
+
+  bool isentry_imm12() const { return isImm(-2048, 2047); }
+
+  bool isimm7n() const { return isImm(0, 32760); }
+
+  bool isimm8() const { return isImm(-128, 127); }
+
+  bool isimm8_sh8() const {
+    return isImm(-32768, 32512) &&
+           ((dyn_cast<MCConstantExpr>(getImm())->getValue() & 0xFF) == 0);
   }
 
- bool isentry_imm12() const { return isImm(-2048, 2047); }
+  bool isimmn() const { return isImm(0, 15); }
 
-  bool isimm7n() const {
-    return isImm(0, 32760);   
+  bool isoffset4m32() const { return isImm(0, 15); }
+
+  bool isoffset8m16() const { return isImm(0, 255); }
+
+  bool isoffset8m32() const { return isImm(0, 255); }
+
+  bool isoffset8m8() const { return isImm(0, 255); }
+
+  bool isshimm4() const { return isImm(0, 15); }
+
+  bool isshimm5() const { return isImm(0, 31); }
+
+  bool isb4const() const {
+    if (Kind != Immediate)
+      return false;
+    if (auto *CE = dyn_cast<MCConstantExpr>(getImm())) {
+      int64_t Value = CE->getValue();
+      switch (Value) {
+      case -1:
+      case 1:
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+      case 8:
+      case 10:
+      case 12:
+      case 16:
+      case 32:
+      case 64:
+      case 128:
+      case 256:
+        return true;
+      default:
+        return false;
+      }
+    }
+    return false;
   }
 
-  bool isimm8() const {
-    return isImm(-128, 127); 
-  }
-
-  bool isimmn() const {
-    return isImm(0, 15); 
-  }
-
-  bool isoffset4m32() const {
-    return isImm(0, 15); 
-  }
-
-  bool isoffset8m16() const {
-    return isImm(0, 255); 
-  }
-
-  bool isoffset8m32() const {
-    return isImm(0, 255); 
-  }
-
-  bool isoffset8m8() const {
-    return isImm(0, 255); 
-  }
-
-  bool isshimm4() const {
-    return isImm(0, 15); 
-  }
-
-  bool isshimm5() const {
-    return isImm(0, 31); 
+  bool isb4constu() const {
+    if (Kind != Immediate)
+      return false;
+    if (auto *CE = dyn_cast<MCConstantExpr>(getImm())) {
+      int64_t Value = CE->getValue();
+      switch (Value) {
+      case 32768:
+      case 65536:
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+      case 8:
+      case 10:
+      case 12:
+      case 16:
+      case 32:
+      case 64:
+      case 128:
+      case 256:
+        return true;
+      default:
+        return false;
+      }
+    }
+    return false;
   }
 
   /// getStartLoc - Gets location of the first token of this operand
   SMLoc getStartLoc() const override { return StartLoc; }
   /// getEndLoc - Gets location of the last token of this operand
   SMLoc getEndLoc() const override { return EndLoc; }
-
 
   unsigned getReg() const override {
     assert(Kind == Register && "Invalid type access!");
@@ -227,7 +270,7 @@ public:
   }
 
   static std::unique_ptr<XtensaOperand> createReg(unsigned RegNo, SMLoc S,
-                                                 SMLoc E) {
+                                                  SMLoc E) {
     auto Op = make_unique<XtensaOperand>(Register);
     Op->Reg.RegNum = RegNo;
     Op->StartLoc = S;
@@ -236,7 +279,7 @@ public:
   }
 
   static std::unique_ptr<XtensaOperand> createImm(const MCExpr *Val, SMLoc S,
-                                                 SMLoc E) {
+                                                  SMLoc E) {
     auto Op = make_unique<XtensaOperand>(Immediate);
     Op->Imm.Val = Val;
     Op->StartLoc = S;
@@ -278,11 +321,10 @@ public:
 #define GET_MATCHER_IMPLEMENTATION
 #include "XtensaGenAsmMatcher.inc"
 
-
 unsigned XtensaAsmParser::validateTargetOperandClass(MCParsedAsmOperand &AsmOp,
-                                                    unsigned Kind) {
-  //XtensaOperand &Op = static_cast<XtensaOperand &>(AsmOp);
-  //if (!Op.isReg())
+                                                     unsigned Kind) {
+  // XtensaOperand &Op = static_cast<XtensaOperand &>(AsmOp);
+  // if (!Op.isReg())
   //  return Match_InvalidOperand;
 
   return Match_InvalidOperand;
@@ -296,10 +338,10 @@ bool XtensaAsmParser::generateImmOutOfRangeError(
 }
 
 bool XtensaAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
-                                             OperandVector &Operands,
-                                             MCStreamer &Out,
-                                             uint64_t &ErrorInfo,
-                                             bool MatchingInlineAsm) {
+                                              OperandVector &Operands,
+                                              MCStreamer &Out,
+                                              uint64_t &ErrorInfo,
+                                              bool MatchingInlineAsm) {
   MCInst Inst;
 
   switch (MatchInstructionImpl(Operands, Inst, ErrorInfo, MatchingInlineAsm)) {
@@ -330,10 +372,8 @@ bool XtensaAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   llvm_unreachable("Unknown match type detected!");
 }
 
-
-
 bool XtensaAsmParser::ParseRegister(unsigned &RegNo, SMLoc &StartLoc,
-                                   SMLoc &EndLoc) {
+                                    SMLoc &EndLoc) {
   const AsmToken &Tok = getParser().getTok();
   StartLoc = Tok.getLoc();
   EndLoc = Tok.getEndLoc();
@@ -349,7 +389,7 @@ bool XtensaAsmParser::ParseRegister(unsigned &RegNo, SMLoc &StartLoc,
 }
 
 OperandMatchResultTy XtensaAsmParser::parseRegister(OperandVector &Operands,
-                                                   bool AllowParens) {
+                                                    bool AllowParens) {
   SMLoc FirstS = getLoc();
   bool HadParens = false;
   AsmToken Buf[2];
@@ -370,9 +410,9 @@ OperandMatchResultTy XtensaAsmParser::parseRegister(OperandVector &Operands,
     StringRef Name = getLexer().getTok().getIdentifier();
     unsigned RegNo = MatchRegisterName(Name);
     if (RegNo == 0) {
-        if (HadParens)
-          getLexer().UnLex(Buf[0]);
-        return MatchOperand_NoMatch;
+      if (HadParens)
+        getLexer().UnLex(Buf[0]);
+      return MatchOperand_NoMatch;
     }
     if (HadParens)
       Operands.push_back(XtensaOperand::createToken("(", FirstS));
@@ -424,7 +464,7 @@ OperandMatchResultTy XtensaAsmParser::parseImmediate(OperandVector &Operands) {
 
 OperandMatchResultTy
 XtensaAsmParser::parseOperandWithModifier(OperandVector &Operands) {
-    return MatchOperand_ParseFail;
+  return MatchOperand_ParseFail;
 }
 
 OperandMatchResultTy
@@ -475,8 +515,8 @@ bool XtensaAsmParser::parseOperand(OperandVector &Operands) {
 }
 
 bool XtensaAsmParser::ParseInstruction(ParseInstructionInfo &Info,
-                                      StringRef Name, SMLoc NameLoc,
-                                      OperandVector &Operands) {
+                                       StringRef Name, SMLoc NameLoc,
+                                       OperandVector &Operands) {
   // First operand is token for instruction
   Operands.push_back(XtensaOperand::createToken(Name, NameLoc));
 
@@ -549,8 +589,6 @@ bool XtensaAsmParser::classifySymbolRef(const MCExpr *Expr,
 bool XtensaAsmParser::ParseDirective(AsmToken DirectiveID) { return true; }
 
 // Force static initialization.
-extern "C" void LLVMInitializeXtensaAsmParser() 
-{
+extern "C" void LLVMInitializeXtensaAsmParser() {
   RegisterMCAsmParser<XtensaAsmParser> X(TheXtensaTarget);
 }
-

@@ -22,6 +22,11 @@ class Immediate<ValueType vt, code pred, string asmop>
 def Imm8_AsmOperand: ImmAsmOperand<"imm8">;
 def imm8: Immediate<i32, [{ return Imm >= -128 && Imm <= 127; }], "Imm8_AsmOperand">; 
 
+// imm8_sh8 predicate - Immediate in the range [-32768,32512]
+// imm8 value left shifted by 8 bits
+def Imm8_sh8_AsmOperand: ImmAsmOperand<"imm8_sh8">;
+def imm8_sh8: Immediate<i32, [{ return Imm >= -32768 && Imm <= 32512 && ((Imm & 0xFF) == 0); }], "Imm8_sh8_AsmOperand">; 
+
 // imm7n predicate - Immediate in the range [-32,95]
 def Imm7n_AsmOperand: ImmAsmOperand<"imm7n">;
 def imm7n: Immediate<i32, [{ return Imm >= -32 && Imm <= 95; }], "Imm7n_AsmOperand">; 
@@ -70,6 +75,32 @@ def offset4m32: Immediate<i32,
 def Entry_Imm12_AsmOperand: ImmAsmOperand<"entry_imm12">;
 def entry_imm12: Immediate<i32, [{ return Imm >= 0 && Imm <= 32760; }], "Entry_Imm12_AsmOperand">; 
 
+// b4const predicate - Branch Immediate 4-bit signed operand
+def B4const_AsmOperand: ImmAsmOperand<"b4const">;
+def b4const: Immediate<i32,
+  [{ switch (Imm)
+     {
+	   case -1: case 1: case 2: case 3:  case 4:
+	   case 5:  case 6: case 7: case 8: case 10: case 12:
+	   case 16: case 32: case 64: case 128: case 256: return 1;
+	   default: return 0;
+	 }
+  }],
+  "B4const_AsmOperand">;
+
+// b4constu predicate - Branch Immediate 4-bit unsigned operand
+def B4constu_AsmOperand: ImmAsmOperand<"b4constu">;
+def b4constu: Immediate<i32,
+  [{ switch (Imm)
+     {
+	   case 32768: case 65536: case 2: case 3:  case 4:
+	   case 5:  case 6: case 7: case 8: case 10: case 12:
+	   case 16: case 32: case 64: case 128: case 256: return 1;
+	   default: return 0;
+	 }
+  }],
+  "B4constu_AsmOperand">;
+
 def imm32 : ImmLeaf<i32, [{}]>, Operand<i32>;
 
 //===----------------------------------------------------------------------===//
@@ -89,7 +120,7 @@ def mem16: mem<offset8m16>;
 def mem32: mem<offset8m32>;
 def mem32n: mem<offset4m32>;
 
-def addr: ComplexPattern<iPTR, 2, "selectMemRegAddr">;
+def addr: ComplexPattern<iPTR, 2, "selectMemRegAddr", [frameindex]>;
 
 //===----------------------------------------------------------------------===//
 // Symbolic address operands

@@ -41,7 +41,8 @@ private:
   void printMemRegOperand(const MCInst *MI, int OpNUm, raw_ostream &O);
   void printAccessRegOperand(const MCInst *MI, int OpNum, raw_ostream &O);
 
-  void printImm8_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O); 
+  void printImm8_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
+  void printImm8_sh8_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O); 
   void printImm7n_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
   void printImm12_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
   void printImmn_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
@@ -52,6 +53,8 @@ private:
   void printOffset8m32_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
   void printOffset4m32_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
   void printEntry_Imm12_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
+  void printB4const_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
+  void printB4constu_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
   
   // Print the mnemonic for a condition-code mask ("ne", "lh", etc.)
   // This forms part of the instruction name rather than the operand list.

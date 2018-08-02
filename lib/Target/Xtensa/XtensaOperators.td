@@ -14,6 +14,10 @@ def SDT_XtensaWrapPtr            : SDTypeProfile<1, 1,
                                              SDTCisPtrTy<0>]>;
 def SDT_XtensaFence              : SDTypeProfile<0, 2,[SDTCisVT<0, i32>,
                                                   SDTCisVT<1, i32>]>;
+def SDT_XtensaCmp                : SDTypeProfile<0, 2, [SDTCisVT<0, f32>, SDTCisVT<1, f32>]>;
+def SDT_XtensaBrCC               : SDTypeProfile<0, 1, [SDTCisVT<0, OtherVT>]>;
+def SDT_XtensaSelectCCF          : SDTypeProfile<1, 5, [SDTCisSameAs<0, 1>, SDTCisSameAs<2, 3>, SDTCisVT<5, f32>]>;
+def SDT_XtensaMoveCond           : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>, SDTCisVT<0, i32>]>;
 
 //===----------------------------------------------------------------------===//
 // Node definitions
@@ -42,3 +46,19 @@ def Xtensa_select_cc: SDNode<"XtensaISD::SELECT_CC", SDT_XtensaSelectCC,
 def Xtensa_fence: SDNode<"XtensaISD::FENCE", SDT_XtensaFence, 
                  [SDNPHasChain, SDNPSideEffect]>;
 
+def Xtensa_cmpeq     : SDNode<"XtensaISD::CMPEQ", SDT_XtensaCmp, [SDNPOutGlue]>;
+def Xtensa_cmplt     : SDNode<"XtensaISD::CMPLT", SDT_XtensaCmp, [SDNPOutGlue]>;
+def Xtensa_cmple     : SDNode<"XtensaISD::CMPLE", SDT_XtensaCmp, [SDNPOutGlue]>;
+def Xtensa_brcc_t    : SDNode<"XtensaISD::BR_CC_T", SDT_XtensaBrCC,
+                            [SDNPHasChain, SDNPInGlue]>;
+def Xtensa_brcc_f    : SDNode<"XtensaISD::BR_CC_F", SDT_XtensaBrCC,
+                            [SDNPHasChain, SDNPInGlue]>;
+def Xtensa_selectcc_t: SDNode<"XtensaISD::SELECT_CC_T", SDT_XtensaSelectCCF,
+                            [SDNPInGlue]>;
+def Xtensa_selectcc_f: SDNode<"XtensaISD::SELECT_CC_F", SDT_XtensaSelectCCF,
+                            [SDNPInGlue]>;
+
+def Xtensa_movt: SDNode<"XtensaISD::MOVT", SDT_XtensaMoveCond,
+                            [SDNPInGlue]>;
+def Xtensa_movf: SDNode<"XtensaISD::MOVF", SDT_XtensaMoveCond,
+                            [SDNPInGlue]>;

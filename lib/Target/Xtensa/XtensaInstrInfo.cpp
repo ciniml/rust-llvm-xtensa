@@ -316,6 +316,13 @@ unsigned XtensaInstrInfo::InsertConstBranchAtInst(MachineBasicBlock &MBB,
         .addReg(Cond[2].getReg())
         .addReg(Cond[3].getReg());
     break;
+  case Xtensa::CCMASK_BT:
+    BuildMI(MBB, I, DL, get(Xtensa::BTs)).addImm(offset);
+    break;
+  case Xtensa::CCMASK_BF:
+    BuildMI(MBB, I, DL, get(Xtensa::BFs)).addImm(offset);
+    break;
+
   default:
     llvm_unreachable("Invalid branch condition code!");
   }
@@ -339,10 +346,6 @@ unsigned XtensaInstrInfo::InsertBranchAtInst(MachineBasicBlock &MBB,
     return 1;
   }
 
-  for (int i = 0; i < Cond.size(); i++) {
-    //Cond[i].dump();
-  }
-
   // Conditional branch.
   unsigned Count = 0;
   unsigned CC = Cond[0].getImm();
@@ -350,6 +353,7 @@ unsigned XtensaInstrInfo::InsertBranchAtInst(MachineBasicBlock &MBB,
   int CodeImm = 0;
   int CodeZ = 0;
   bool NonImmed = false;
+  bool BBranch = false;
   switch (CC) {
   case Xtensa::CCMASK_CMP_EQ:
     CodeReg = Xtensa::BEQ;
@@ -397,6 +401,16 @@ unsigned XtensaInstrInfo::InsertBranchAtInst(MachineBasicBlock &MBB,
     CodeReg = Xtensa::BLEU;
     CodeImm = 0;
     break;
+  case Xtensa::CCMASK_BF:
+    CodeReg = Xtensa::BFs;
+    CodeImm = 0;
+    BBranch = true;
+    break;
+  case Xtensa::CCMASK_BT:
+    CodeReg = Xtensa::BTs;
+    CodeImm = 0;
+    BBranch = true;
+    break;
   default:
     llvm_unreachable("Invalid branch condition code!");
   }
@@ -428,15 +442,12 @@ unsigned XtensaInstrInfo::InsertBranchAtInst(MachineBasicBlock &MBB,
       }
     } else
       llvm_unreachable("Invalid branch insert operand!");
-  }
-  else
-  {
-    if (CodeZ != 0)
-      BuildMI(MBB, I, DL, get(CodeZ))
-		.addMBB(TBB).
-		addReg(Cond[2].getReg());	  
-	else
-	{
+  } else {
+    if (BBranch)
+      BuildMI(MBB, I, DL, get(CodeReg)).addMBB(TBB);
+    else if (CodeZ != 0)
+      BuildMI(MBB, I, DL, get(CodeZ)).addMBB(TBB).addReg(Cond[2].getReg());
+    else {
       if (CodeImm)
         BuildMI(MBB, I, DL, get(CodeImm))
             .addMBB(TBB)
@@ -455,8 +466,7 @@ unsigned XtensaInstrInfo::InsertBranchAtInst(MachineBasicBlock &MBB,
             .addReg(Cond[2].getReg())
             .addReg(TempReg);
       }
-	}
-
+    }
   }
 
   ++Count;
@@ -473,12 +483,18 @@ void XtensaInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   // when we are copying a phys reg we want the bits for fp
   if (Xtensa::ARRegClass.contains(DestReg, SrcReg))
     Opcode = Xtensa::MOV_N;
+  else if (STI.hasF() && Xtensa::FPRRegClass.contains(SrcReg) &&
+           Xtensa::FPRRegClass.contains(DestReg))
+    Opcode = Xtensa::MOV_S;
+
+  /*
   else if (Xtensa::ARRegClass.contains(SrcReg) &&
            Xtensa::SARLRegClass.contains(DestReg))
     Opcode = Xtensa::SSL;
   else if (Xtensa::ARRegClass.contains(SrcReg) &&
            Xtensa::SARRRegClass.contains(DestReg))
     Opcode = Xtensa::SSR;
+  */
 
   /*
   else if (Xtensa::FP32BitRegClass.contains(DestReg, SrcReg))
@@ -622,6 +638,12 @@ bool XtensaInstrInfo::reverseBranchCondition(
   case Xtensa::CCMASK_CMP_LE | Xtensa::CCMASK_CMP_UO:
     Cond[0].setImm(Xtensa::CCMASK_CMP_GT | Xtensa::CCMASK_CMP_UO);
     return false;
+  case Xtensa::CCMASK_BT:
+    Cond[0].setImm(Xtensa::CCMASK_BF);
+    return false;
+  case Xtensa::CCMASK_BF:
+    Cond[0].setImm(Xtensa::CCMASK_BT);
+    return false;
   default:
     llvm_unreachable("Invalid branch condition!");
   }
@@ -688,6 +710,14 @@ bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
     Cond[0].setImm(Xtensa::CCMASK_CMP_LE | Xtensa::CCMASK_CMP_UO);
     Target = &MI->getOperand(0);
     return true;
+  case Xtensa::BTs:
+    Cond[0].setImm(Xtensa::CCMASK_BT);
+    Target = &MI->getOperand(0);
+    return true;
+  case Xtensa::BFs:
+    Cond[0].setImm(Xtensa::CCMASK_BF);
+    Target = &MI->getOperand(0);
+    return true;
 
   default:
     assert(!MI->getDesc().isBranch() && "Unknown branch opcode");
@@ -733,9 +763,18 @@ void XtensaInstrInfo::loadImmediate(MachineBasicBlock &MBB,
     BuildMI(MBB, MBBI, DL, get(Xtensa::MOVI_N), *Reg).addImm(Value);
   } else if (Value >= -2048 && Value <= 2047) {
     BuildMI(MBB, MBBI, DL, get(Xtensa::MOVI), *Reg).addImm(Value);
+  } else if (Value >= -32768 && Value <= 32768) {
+    int Low = Value & 0xFF;
+    int High = Value & ~0xFF;
+
+    BuildMI(MBB, MBBI, DL, get(Xtensa::MOVI), *Reg).addImm(Low);
+    BuildMI(MBB, MBBI, DL, get(Xtensa::ADDMI), *Reg)
+		.addReg(*Reg) 
+		.addImm(High);
   } else {
     // use L32R to let assembler load immediate best
     // TODO replace to L32R
-    BuildMI(MBB, MBBI, DL, get(Xtensa::LI), *Reg).addImm(Value);
+    llvm_unreachable("Unsupported load immediate value");
+    //    BuildMI(MBB, MBBI, DL, get(Xtensa::LI), *Reg).addImm(Value);
   }
 }

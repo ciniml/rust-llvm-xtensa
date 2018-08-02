@@ -161,13 +161,14 @@ public:
 class XtensaConstantPoolSymbol : public XtensaConstantPoolValue 
 {
   const std::string S;          // ExtSymbol being loaded.
+  bool PrivateLinkage;
 
   XtensaConstantPoolSymbol(LLVMContext &C, const char *s, unsigned id,
-                           bool AddCurrentAddress);
+                           bool AddCurrentAddress, bool PrivLinkage);
 
 public:
   static XtensaConstantPoolSymbol *Create(LLVMContext &C, const char *s,
-                                       unsigned ID);
+                                       unsigned ID, bool PrivLinkage);
 
   const char *getSymbol() const { return S.c_str(); }
 
@@ -179,6 +180,11 @@ public:
   /// hasSameValue - Return true if this Xtensa constpool value can share the same
   /// constantpool entry as another Xtensa constpool value.
   bool hasSameValue(XtensaConstantPoolValue *ACPV) override;
+
+  bool isPrivateLinkage()
+  { 
+	return PrivateLinkage; 
+  }
 
   void print(raw_ostream &O) const override;
 
