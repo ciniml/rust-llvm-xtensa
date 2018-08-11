@@ -1,5 +1,6 @@
 #include "XtensaInstrInfo.h"
 #include "XtensaTargetMachine.h"
+#include "llvm/CodeGen/MachineConstantPool.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 
@@ -483,9 +484,9 @@ void XtensaInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   // when we are copying a phys reg we want the bits for fp
   if (Xtensa::ARRegClass.contains(DestReg, SrcReg))
     Opcode = Xtensa::MOV_N;
-  else if (STI.hasF() && Xtensa::FPRRegClass.contains(SrcReg) &&
+  /*else if (STI.hasF() && Xtensa::FPRRegClass.contains(SrcReg) &&
            Xtensa::FPRRegClass.contains(DestReg))
-    Opcode = Xtensa::MOV_S;
+    Opcode = Xtensa::MOV_S;*/
 
   /*
   else if (Xtensa::ARRegClass.contains(SrcReg) &&
@@ -763,18 +764,26 @@ void XtensaInstrInfo::loadImmediate(MachineBasicBlock &MBB,
     BuildMI(MBB, MBBI, DL, get(Xtensa::MOVI_N), *Reg).addImm(Value);
   } else if (Value >= -2048 && Value <= 2047) {
     BuildMI(MBB, MBBI, DL, get(Xtensa::MOVI), *Reg).addImm(Value);
-  } else if (Value >= -32768 && Value <= 32768) {
+  } else if (Value >= -32768 && Value <= 32767) {
     int Low = Value & 0xFF;
     int High = Value & ~0xFF;
 
     BuildMI(MBB, MBBI, DL, get(Xtensa::MOVI), *Reg).addImm(Low);
-    BuildMI(MBB, MBBI, DL, get(Xtensa::ADDMI), *Reg)
-		.addReg(*Reg) 
-		.addImm(High);
+    BuildMI(MBB, MBBI, DL, get(Xtensa::ADDMI), *Reg).addReg(*Reg).addImm(High);
+  } else if (Value >= -4294967296LL && Value <= 4294967295LL) {
+    // 32 bit arbirary constant
+    MachineConstantPool *MCP = MBB.getParent()->getConstantPool();
+    uint64_t UVal = ((uint64_t) Value) & 0xFFFFFFFFLL;
+    const Constant *CVal = ConstantInt::get(
+        Type::getInt32Ty(MBB.getParent()->getFunction().getContext()), UVal,
+        false);
+	unsigned Idx = MCP->getConstantPoolIndex(CVal, 2U);
+//	MCSymbol MSym
+    BuildMI(MBB, MBBI, DL, get(Xtensa::L32R), *Reg).addConstantPoolIndex(Idx);
   } else {
-    // use L32R to let assembler load immediate best
-    // TODO replace to L32R
-    llvm_unreachable("Unsupported load immediate value");
-    //    BuildMI(MBB, MBBI, DL, get(Xtensa::LI), *Reg).addImm(Value);
-  }
+      // use L32R to let assembler load immediate best
+      // TODO replace to L32R
+      llvm_unreachable("Unsupported load immediate value");
+      //    BuildMI(MBB, MBBI, DL, get(Xtensa::LI), *Reg).addImm(Value);
+    }
 }

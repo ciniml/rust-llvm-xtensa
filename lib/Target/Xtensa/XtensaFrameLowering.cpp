@@ -112,7 +112,8 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
           .addReg(TmpReg)
           .addImm(MIN_FRAME_SIZE);
       TII.loadImmediate(MBB, MBBI, &TmpReg, StackSize - MIN_FRAME_SIZE);
-      BuildMI(MBB, MBBI, dl, TII.get(Xtensa::SUB)).addReg(SP).addReg(TmpReg);
+      BuildMI(MBB, MBBI, dl, TII.get(Xtensa::SUB), TmpReg).addReg(SP).addReg(TmpReg);
+      BuildMI(MBB, MBBI, dl, TII.get(Xtensa::MOVSP), SP).addReg(TmpReg);
     }
 
     // emit ".cfi_def_cfa_offset StackSize"

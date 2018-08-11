@@ -120,6 +120,7 @@ def mem16: mem<offset8m16>;
 def mem32: mem<offset8m32>;
 def mem32n: mem<offset4m32>;
 
+def addrn: ComplexPattern<iPTR, 2, "selectMemRegAddrN", [frameindex]>;
 def addr: ComplexPattern<iPTR, 2, "selectMemRegAddr", [frameindex]>;
 
 //===----------------------------------------------------------------------===//

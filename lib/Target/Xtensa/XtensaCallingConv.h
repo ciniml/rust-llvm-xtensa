@@ -5,9 +5,9 @@ namespace llvm
 {
   namespace Xtensa 
   {
-    const unsigned NumArgGPRs = 8;
+    const unsigned NumArgGPRs = 6;
 
-    const unsigned NumArgFPRs = 8;
+    const unsigned NumArgFPRs = 0;
   }
 }
 

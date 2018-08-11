@@ -155,6 +155,13 @@ def MOV_N: RRRN_Inst<0x0D, (outs AR:$t), (ins AR:$s),
   let r = 0;
 }
 
+def MOVSP: RRR_Inst<0x00, 0x00, 0x00, (outs AR:$t), (ins AR:$s),
+   "movsp\t$t, $s",
+   []>
+{
+  let r = 0x01;
+}
+
 def MOVI_N: RI7_Inst<0x02, (outs AR:$s), (ins imm7n:$imm7),
    "movi.n\t$s, $imm7",
    [(set AR:$s, imm7n:$imm7)]>;
@@ -197,7 +204,7 @@ let mayLoad = 1 in
 
   class Load_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
       Operand memOp>: RRI8_Inst<0x02, (outs AR:$t), (ins memOp:$addr), 
-                instrAsm#"\t\t$t, $addr", 
+                instrAsm#"\t$t, $addr", 
                 [(set AR:$t, (opNode addr:$addr))]>
   {
     let r = oper;
@@ -233,7 +240,7 @@ let mayStore = 1 in
 
   class Store_II8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
       Operand memOp>: RRI8_Inst<0x02, (outs), (ins AR:$t, memOp:$addr),
-              instrAsm#"\t\t$t, $addr", 
+              instrAsm#"\t$t, $addr", 
               [(opNode AR:$t, addr:$addr)]>
   {
     let r = oper;
@@ -590,6 +597,28 @@ def SELECT: Pseudo<(outs AR:$dst), (ins AR:$lhs, AR:$rhs, AR:$t, AR:$f, i32imm:$
   
 //def : Pat<(select (i32 (seteq AR:$lhs, 0)), AR:$t, AR:$f),
 //        (SELECT_CC AR:$lhs, AR:$f, AR:$t)>;
+
+let isBarrier = 1, isTerminator = 1 in
+{
+def BREAK_N: RRRN_Inst<0x0F, (outs), (ins imm32:$t),
+     "break.n\t$t",
+     []> 
+{
+  let r = 0x0D;
+  let s = 0x02;
+}
+
+def BREAK: RRR_Inst<0x00, 0x00, 0x00, (outs), (ins i32imm:$t, i32imm:$s),
+   "break\t$t, $s",
+   []>
+{
+  let r = 0x04;
+}
+}
+
+//def: Pat<(trap), (BREAK (i32 1), (i32 15))>;
+def: Pat<(trap), (BREAK_N (i32 1))>;
+
 //===----------------------------------------------------------------------===//
 // Floating-Point Instructions
 //===----------------------------------------------------------------------===//
@@ -727,9 +756,34 @@ def OEQ_S:  FCompare<0x02, 0x0b, "oeq.s", Xtensa_cmpeq, 1>;
 def OLT_S:  FCompare<0x06, 0x0b, "olt.s", Xtensa_cmplt, 1>;
 def OLE_S:  FCompare<0x04, 0x0b, "ole.s", Xtensa_cmple, 1>;
 
+def UEQ_S:  FCompare<0x03, 0x0b, "ueq.s", Xtensa_cmpueq, 1>;
+def ULT_S:  FCompare<0x05, 0x0b, "ult.s", Xtensa_cmpult, 1>;
+def ULE_S:  FCompare<0x07, 0x0b, "ule.s", Xtensa_cmpule, 1>;
+def UN_S:   FCompare<0x01, 0x0b, "un.s",  Xtensa_cmpuo, 1>;
+
+let usesCustomInserter = 1 in
+{
+  def SELECT_FP: Pseudo<(outs AR:$dst), (ins FPR:$lhs, FPR:$rhs, AR:$t, AR:$f, i32imm:$cond),
+                                    "!select_fp $dst, $lhs, $rhs, $t, $f, $cond",
+                                    [(set AR:$dst, (Xtensa_select_cc_fp FPR:$lhs, FPR:$rhs, AR:$t, AR:$f, imm:$cond))]>;
+
+  def MADDM_S: Pseudo<(outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$t),
+                                    "!maddm_fp $r, $s, $t",
+                                    [(set FPR:$r, (Xtensa_maddm FPR:$a, FPR:$s, FPR:$t))]>;
+}
+
+def MADD_S: RRR_Inst<0x00, 0x0A, 0x0f, (outs FPR:$r), (ins FPR:$s, FPR:$t),
+     "madd.s\t$r, $s, $t",
+     []> 
+{
+  let isCommutable = 0;
+  let isReMaterializable = 0;
+  //let Constraints = "$r = $a";
+}
+
 def MOV_S: RRR_Inst<0x00, 0x0A, 0x0f, (outs FPR:$r), (ins FPR:$s),
      "mov.s\t$r, $s",
-     [(set FPR:$r, FPR:$s)]> 
+     []> 
 {
   let t = 0x00;
 } 
@@ -757,4 +811,5 @@ def MOVT: RRR_Inst<0x00, 0x00, 0x04, (outs AR:$r), (ins AR:$s),
 {
   let Uses = [b0];
 }
+
 

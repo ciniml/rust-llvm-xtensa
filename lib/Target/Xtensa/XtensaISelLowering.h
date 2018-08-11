@@ -58,19 +58,28 @@ namespace XtensaISD
     // Operand 3 is the flag operand.
     SELECT,
     SELECT_CC,
+    SELECT_CC_FP,
 
-	SELECT_CC_T,
-	SELECT_CC_F,
+    BR_CC_T,
+    BR_CC_F,
 
-	BR_CC_T,
-	BR_CC_F,
-
-	CMPEQ,
-	CMPLE,
-	CMPLT,
-
-	MOVF,
-	MOVT,
+    // Floating point unordered compare conditions
+    CMPUEQ,
+    CMPULE,
+    CMPULT,
+    CMPUO,
+    // Floating point compare conditions
+    CMPEQ,
+    CMPLE,
+    CMPLT,
+    // Predicate MOV
+    MOVF,
+    MOVT,
+    // FP multipy-add/sub
+    MADD,
+    MADDM,
+    MSUB,
+    MSUBM,
 
     FENCE
   };
@@ -115,9 +124,17 @@ public:
   TargetLowering::ConstraintWeight
   getSingleConstraintMatchWeight(AsmOperandInfo &info,
                                  const char *constraint) const override;
+
+  /// LowerAsmOperandForConstraint - Lower the specified operand into the Ops
+  /// vector.  If it is invalid, don't add anything to Ops. If hasMemory is
+  /// true it means one of the asm constraint of the inline asm instruction
+  /// being processed is 'm'.
   void LowerAsmOperandForConstraint(SDValue Op, std::string &Constraint,
                                     std::vector<SDValue> &Ops,
                                     SelectionDAG &DAG) const override;
+
+  SDValue PerformDAGCombine(SDNode *N, DAGCombinerInfo &DCI) const override;
+
   MachineBasicBlock *
   EmitInstrWithCustomInserter(MachineInstr &MI,
                               MachineBasicBlock *BB) const override;
@@ -194,6 +211,13 @@ private:
   MachineBasicBlock *emitSelectCC(MachineInstr &MI,
                                 MachineBasicBlock *BB) const;
 
+  unsigned getInlineAsmMemConstraint(StringRef ConstraintCode) const override {
+    if (ConstraintCode == "R")
+      return InlineAsm::Constraint_R;
+    else if (ConstraintCode == "ZC")
+      return InlineAsm::Constraint_ZC;
+    return TargetLowering::getInlineAsmMemConstraint(ConstraintCode);
+  }
 };
 
 /*
