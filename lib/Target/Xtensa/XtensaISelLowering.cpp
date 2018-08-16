@@ -287,9 +287,10 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   setCondCodeAction(ISD::SETONE, MVT::f32, Expand);
   setCondCodeAction(ISD::SETUGE, MVT::f32, Expand);
   setCondCodeAction(ISD::SETUGT, MVT::f32, Expand);
+  setCondCodeAction(ISD::SETUNE, MVT::f32, Expand);
 
-  //setTargetDAGCombine(ISD::FADD);
-  //setTargetDAGCombine(ISD::FSUB);
+  setTargetDAGCombine(ISD::FADD);
+  setTargetDAGCombine(ISD::FSUB);
 
   // Compute derived properties from the register classes
   computeRegisterProperties(STI.getRegisterInfo());
@@ -443,13 +444,45 @@ XtensaTargetLowering::getRegForInlineAsmConstraint(
 //===----------------------------------------------------------------------===//
 static SDValue performMADD_MSUBCombine(SDNode *ROOTNode, SelectionDAG &CurDAG,
                                        const XtensaSubtarget &Subtarget) {
-  return SDValue();
+  if (ROOTNode->getOperand(0).getValueType() != MVT::f32)
+    return SDValue();
+
+  if (ROOTNode->getOperand(0).getOpcode() != ISD::FMUL &&
+      ROOTNode->getOperand(1).getOpcode() != ISD::FMUL)
+    return SDValue();
+
+  SDValue Mult = ROOTNode->getOperand(0).getOpcode() == ISD::FMUL
+                     ? ROOTNode->getOperand(0)
+                     : ROOTNode->getOperand(1);
+
+  SDValue AddOperand = ROOTNode->getOperand(0).getOpcode() == ISD::FMUL
+                           ? ROOTNode->getOperand(1)
+                           : ROOTNode->getOperand(0);
+
+  if (!Mult.hasOneUse())
+    return SDValue();
+
+  SDValue MultLHS = Mult->getOperand(0);
+  SDValue MultRHS = Mult->getOperand(1);
+
+  SDLoc DL(ROOTNode);
+
+  bool IsAdd = ROOTNode->getOpcode() == ISD::FADD;
+  unsigned Opcode = IsAdd ? XtensaISD::MADD : XtensaISD::MSUB;
+  SDValue MAddOps[3] = {AddOperand, Mult->getOperand(0), Mult->getOperand(1)};
+  EVT VTs[3] = {MVT::f32, MVT::f32, MVT::f32};
+  SDValue MAdd = CurDAG.getNode(Opcode, DL, VTs, MAddOps);
+
+  return MAdd;
 }
 
 static SDValue performSUBCombine(SDNode *N, SelectionDAG &DAG,
                                  TargetLowering::DAGCombinerInfo &DCI,
                                  const XtensaSubtarget &Subtarget) {
-
+  if (DCI.isBeforeLegalizeOps()) {
+    if (Subtarget.hasF() && N->getValueType(0) == MVT::f32)
+      return performMADD_MSUBCombine(N, DAG, Subtarget);
+  }
   return SDValue();
 }
 
@@ -1514,9 +1547,8 @@ const char *XtensaTargetLowering::getTargetNodeName(unsigned Opcode) const {
     OPCODE(MOVT);
     OPCODE(MOVF);
     OPCODE(MADD);
-    OPCODE(MADDM);
     OPCODE(MSUB);
-    OPCODE(MSUBM);
+    OPCODE(MOVS);
   }
   return NULL;
 #undef OPCODE

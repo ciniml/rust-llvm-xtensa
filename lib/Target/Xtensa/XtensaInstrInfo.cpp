@@ -484,9 +484,9 @@ void XtensaInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   // when we are copying a phys reg we want the bits for fp
   if (Xtensa::ARRegClass.contains(DestReg, SrcReg))
     Opcode = Xtensa::MOV_N;
-  /*else if (STI.hasF() && Xtensa::FPRRegClass.contains(SrcReg) &&
+  else if (STI.hasF() && Xtensa::FPRRegClass.contains(SrcReg) &&
            Xtensa::FPRRegClass.contains(DestReg))
-    Opcode = Xtensa::MOV_S;*/
+    Opcode = Xtensa::MOV_S;
 
   /*
   else if (Xtensa::ARRegClass.contains(SrcReg) &&

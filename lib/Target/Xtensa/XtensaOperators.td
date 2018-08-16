@@ -20,6 +20,7 @@ def SDT_XtensaSelectCCFP         : SDTypeProfile<1, 5, [SDTCisVT<0, i32>, SDTCis
 def SDT_XtensaMoveCond           : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>, SDTCisVT<0, i32>]>;
 
 def SDT_XtensaMADD               : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>, SDTCisSameAs<0, 2>, SDTCisSameAs<0, 3>, SDTCisVT<0, f32>]>;
+def SDT_XtensaMOVS               : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>, SDTCisVT<0, f32>]>;
 
 //===----------------------------------------------------------------------===//
 // Node definitions
@@ -71,9 +72,7 @@ def Xtensa_movf: SDNode<"XtensaISD::MOVF", SDT_XtensaMoveCond,
 
 def Xtensa_madd: SDNode<"XtensaISD::MADD", SDT_XtensaMADD,
                             [SDNPInGlue]>;
-def Xtensa_maddm: SDNode<"XtensaISD::MADDM", SDT_XtensaMADD,
-                            [SDNPInGlue]>;
 def Xtensa_msub: SDNode<"XtensaISD::MSUB", SDT_XtensaMADD,
                             [SDNPInGlue]>;
-def Xtensa_msubm: SDNode<"XtensaISD::MSUBM", SDT_XtensaMADD,
+def Xtensa_movs: SDNode<"XtensaISD::MOVS", SDT_XtensaMOVS,
                             [SDNPInGlue]>;

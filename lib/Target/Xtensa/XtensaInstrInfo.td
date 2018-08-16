@@ -635,17 +635,7 @@ class FPArith_RRR<bits<4> oper2, bits<4> oper1, string instrAsm,
 
 def ADD_S: FPArith_RRR<0x00, 0x0A, "add.s", fadd, 1>;
 def SUB_S: FPArith_RRR<0x01, 0x0A, "sub.s", fsub>;
-def MUL_S: FPArith_RRR<0x02, 0x0A, "and.s", fmul, 1>;
-//def MADD_S: FPArith_RRR<0x04, 0x0A, "madd.s", fma, 1>;
-//def MSUB_S: FPArith_RRR<0x06, 0x0A, "msub.s", fmsub, 1>;
-
-//def MADD_S:  RRR_Inst<0x00, 0x0A, 0x04, (outs FPR:$r), (ins FPR:$r, FPR:$s, FPR:$t),
-//     "madd.s\t$r, $s, $t",
-//     [(set FPR:$r, (fma FPR:$r, FPR:$s, FPR:$t))]> 
-//{
-//  let isCommutable = 0;
-//  let isReMaterializable = 0;
-//}
+def MUL_S: FPArith_RRR<0x02, 0x0A, "mul.s", fmul, 1>;
 
 def ABS_S: RRR_Inst<0x00, 0x0A, 0x0F, (outs FPR:$r), (ins FPR:$s),
      "abs.s\t$r, $s",
@@ -689,16 +679,16 @@ def UFLOAT_S: RRR_Inst<0x00, 0x0A, 0x0c, (outs FPR:$r), (ins AR:$s),
   let t = 0x00;
 } 
 
-def RFR: RRR_Inst<0x00, 0x0A, 0x0f, (outs FPR:$r), (ins AR:$s),
+def RFR: RRR_Inst<0x00, 0x0A, 0x0f, (outs AR:$r), (ins FPR:$s),
      "rfr\t$r, $s",
-     [(set FPR:$r, (bitconvert AR:$s))]> 
+     [(set AR:$r, (bitconvert FPR:$s))]> 
 {
   let t = 0x04;
 } 
 
-def WFR: RRR_Inst<0x05, 0x0A, 0x0f, (outs AR:$r), (ins FPR:$s),
+def WFR: RRR_Inst<0x05, 0x0A, 0x0f, (outs FPR:$r), (ins AR:$s),
      "wfr\t$r, $s",
-     [(set AR:$r, (bitconvert FPR:$s))]> 
+     [(set FPR:$r, (bitconvert AR:$s))]> 
 {
   let t = 0x05;
 } 
@@ -766,24 +756,29 @@ let usesCustomInserter = 1 in
   def SELECT_FP: Pseudo<(outs AR:$dst), (ins FPR:$lhs, FPR:$rhs, AR:$t, AR:$f, i32imm:$cond),
                                     "!select_fp $dst, $lhs, $rhs, $t, $f, $cond",
                                     [(set AR:$dst, (Xtensa_select_cc_fp FPR:$lhs, FPR:$rhs, AR:$t, AR:$f, imm:$cond))]>;
-
-  def MADDM_S: Pseudo<(outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$t),
-                                    "!maddm_fp $r, $s, $t",
-                                    [(set FPR:$r, (Xtensa_maddm FPR:$a, FPR:$s, FPR:$t))]>;
 }
 
-def MADD_S: RRR_Inst<0x00, 0x0A, 0x0f, (outs FPR:$r), (ins FPR:$s, FPR:$t),
+def MADD_S: RRR_Inst<0x00, 0x0A, 0x04, (outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$t),
      "madd.s\t$r, $s, $t",
-     []> 
+     [(set FPR:$r, (Xtensa_madd FPR:$a, FPR:$s, FPR:$t))]> 
 {
   let isCommutable = 0;
   let isReMaterializable = 0;
-  //let Constraints = "$r = $a";
+  let Constraints = "$r = $a";
+}
+
+def MSUB_S: RRR_Inst<0x00, 0x0A, 0x05, (outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$t),
+     "msub.s\t$r, $s, $t",
+     [(set FPR:$r, (Xtensa_msub FPR:$a, FPR:$s, FPR:$t))]> 
+{
+  let isCommutable = 0;
+  let isReMaterializable = 0;
+  let Constraints = "$r = $a";
 }
 
 def MOV_S: RRR_Inst<0x00, 0x0A, 0x0f, (outs FPR:$r), (ins FPR:$s),
      "mov.s\t$r, $s",
-     []> 
+     [(set FPR:$r, (Xtensa_movs FPR:$s))]> 
 {
   let t = 0x00;
 } 

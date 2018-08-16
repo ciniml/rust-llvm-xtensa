@@ -77,9 +77,9 @@ namespace XtensaISD
     MOVT,
     // FP multipy-add/sub
     MADD,
-    MADDM,
     MSUB,
-    MSUBM,
+	//FP move
+	MOVS,
 
     FENCE
   };
