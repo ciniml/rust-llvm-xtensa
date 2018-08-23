@@ -124,5 +124,5 @@ foreach i = 0-15 in {
 
 // Boolean register class with allocation order
 //todo
-def BR : RegisterClass<"Xtensa", [i32], 32, (add b0, b1)>;
+def BR : RegisterClass<"Xtensa", [i1], 0, (add b0)>;
   //, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15)>;

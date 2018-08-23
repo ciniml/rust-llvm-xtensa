@@ -32,11 +32,11 @@ void XtensaTargetObjectFile::Initialize(MCContext &Ctx, const TargetMachine &TM)
 */
 
 // Return true if we must use long (in fact, indirect) function call.
-// It's simplified version, production implimentation must 
-// resolve a functions in ROM (usually glibc functions) 
-static bool isLongCall(const char* str) { 
-	std::string name(str);
-  if (name.find("__") == 0 || name.find("str") == 0 || name.find("mem") == 0)
+// It's simplified version, production implimentation must
+// resolve a functions in ROM (usually glibc functions)
+static bool isLongCall(const char *str) {
+  std::string name(str);
+  if (name.find("__") == 0 || name.find("str") == 0 || name.find("mem") == 0 || name == "malloc")
     return true;
   return false;
 }
@@ -56,8 +56,10 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   MVT PtrVT = MVT::i32;
   // Set up the register classes.
   addRegisterClass(MVT::i32, &Xtensa::ARRegClass);
-  addRegisterClass(MVT::f32, &Xtensa::FPRRegClass);
-  addRegisterClass(MVT::f32, &Xtensa::BRRegClass);
+  if (Subtarget.hasF())
+  {
+    addRegisterClass(MVT::f32, &Xtensa::FPRRegClass);
+  }
 
   // Set up special registers.
   setStackPointerRegisterToSaveRestore(Xtensa::sp);
@@ -70,7 +72,9 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
       ZeroOrOneBooleanContent); // vectors of i1s are the same
 
   // Used by legalize types to correctly generate the setcc result.
-  AddPromotedToType(ISD::SETCC, MVT::i1, MVT::i32);
+  //AddPromotedToType(ISD::SETCC, MVT::i1, MVT::i32);
+  setOperationPromotedToType(ISD::SETCC, MVT::i1, MVT::i32);
+  setOperationPromotedToType(ISD::BR_CC, MVT::i1, MVT::i32);
 
   setMinFunctionAlignment(1);
 
@@ -83,7 +87,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   setOperationAction(ISD::SELECT, MVT::f32, Expand);
 
   setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
-  setOperationAction(ISD::SELECT_CC, MVT::i64, Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::i64, Expand);
   setOperationAction(ISD::SELECT_CC, MVT::f32, Custom);
 
   setOperationAction(ISD::SETCC, MVT::i32,
@@ -178,6 +182,14 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i8, Expand);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i16, Expand);
   setOperationAction(ISD::SIGN_EXTEND_INREG, MVT::i32, Expand);
+
+  setOperationAction(ISD::BSWAP, MVT::i32, Expand);
+  setOperationAction(ISD::BSWAP, MVT::i64, Expand);
+  setOperationAction(ISD::CTPOP, MVT::i32, Expand);
+  setOperationAction(ISD::CTTZ, MVT::i32, Expand);
+  setOperationAction(ISD::CTLZ, MVT::i32, Expand);
+  setOperationAction(ISD::CTTZ_ZERO_UNDEF, MVT::i32, Expand);
+  setOperationAction(ISD::CTLZ_ZERO_UNDEF, MVT::i32, Expand);
 
   // Handle the various types of symbolic address.
   setOperationAction(ISD::ConstantPool, PtrVT, Custom);
@@ -279,6 +291,8 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   // them
   setOperationAction(ISD::ATOMIC_FENCE, MVT::Other, Custom);
 
+  if (Subtarget.hasF())
+  { 
   setCondCodeAction(ISD::SETOEQ, MVT::f32, Expand);
   setCondCodeAction(ISD::SETOGT, MVT::f32, Expand);
   setCondCodeAction(ISD::SETOGE, MVT::f32, Expand);
@@ -288,12 +302,17 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   setCondCodeAction(ISD::SETUGE, MVT::f32, Expand);
   setCondCodeAction(ISD::SETUGT, MVT::f32, Expand);
   setCondCodeAction(ISD::SETUNE, MVT::f32, Expand);
+  }
 
   setTargetDAGCombine(ISD::FADD);
   setTargetDAGCombine(ISD::FSUB);
 
   // Compute derived properties from the register classes
   computeRegisterProperties(STI.getRegisterInfo());
+  //if (Subtarget.hasF())
+  {
+  addRegisterClass(MVT::i1, &Xtensa::BRRegClass);
+  }
 }
 
 /// If a physical register, this returns the register that receives the
@@ -680,10 +699,10 @@ SDValue XtensaTargetLowering::LowerFormalArguments(
     auto ArgRegs = XtensaIntRegs;
     unsigned NumRegs = llvm::Xtensa::NumArgGPRs;
 
-	// Argument registers starts from 2
-	unsigned FirstArgReg = 2;
-	unsigned Idx;
-	for (Idx = FirstArgReg; Idx < FirstArgReg + NumRegs; ++Idx)
+    // Argument registers starts from 2
+    unsigned FirstArgReg = 2;
+    unsigned Idx;
+    for (Idx = FirstArgReg; Idx < FirstArgReg + NumRegs; ++Idx)
       if (!CCInfo.isAllocated(ArgRegs[Idx]))
         break;
 
@@ -901,8 +920,7 @@ XtensaTargetLowering::LowerCall(CallLoweringInfo &CLI,
   if (isLongCall(name.c_str())) {
     // Create a constant pool entry for the callee address
     XtensaConstantPoolValue *CPV = XtensaConstantPoolSymbol::Create(
-        *DAG.getContext(), name.c_str(),
-        0 /* XtensaCLabelIndex */, false);
+        *DAG.getContext(), name.c_str(), 0 /* XtensaCLabelIndex */, false);
 
     // Get the address of the callee into a register
     SDValue CPAddr = DAG.getTargetConstantPool(CPV, PtrVT, 4);
@@ -1144,7 +1162,7 @@ SDValue XtensaTargetLowering::lowerSELECT_CC(SDValue Op,
                        TargetCC);
   else
     return DAG.getNode(XtensaISD::SELECT_CC, DL, Ty, LHS, RHS, TrueV, FalseV,
-                       TargetCC);
+                     TargetCC);
 }
 
 SDValue XtensaTargetLowering::lowerSETCC(SDValue Op, SelectionDAG &DAG) const {
@@ -1183,7 +1201,7 @@ SDValue XtensaTargetLowering::lowerSETCC(SDValue Op, SelectionDAG &DAG) const {
                        TargetCC);
   else
     return DAG.getNode(XtensaISD::SELECT_CC, DL, Ty, LHS, RHS, TrueV, FalseV,
-                       TargetCC);
+                     TargetCC);
 }
 
 
@@ -1320,8 +1338,15 @@ SDValue XtensaTargetLowering::lowerBlockAddress(BlockAddressSDNode *Node,
   int64_t Offset = Node->getOffset();
   EVT PtrVT = getPointerTy(DAG.getDataLayout());
 
-  SDValue Result = DAG.getTargetBlockAddress(BA, PtrVT, Offset);
-  return Result;
+//  SDValue TBA = DAG.getTargetBlockAddress(BA, PtrVT, Offset);
+//  SDValue SDAddr = DAG.getTargetConstantPool(BA, PtrVT, 4);
+
+  XtensaConstantPoolValue *CPV = XtensaConstantPoolConstant::Create(
+     BA, 0, XtensaCP::CPBlockAddress, 0);
+  SDValue CPAddr = DAG.getTargetConstantPool(CPV, PtrVT, 4);
+
+  SDValue CPWrap = getAddrPIC(CPAddr, DAG);
+  return CPWrap;
 }
 
 SDValue XtensaTargetLowering::lowerBR_JT(SDValue Op, SelectionDAG &DAG) const {
@@ -1870,9 +1895,20 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
     MachineOperand &DST = MI.getOperand(0);
     MachineOperand &ADDR = MI.getOperand(1);
 
-    BuildMI(MBB, DL, TII.get(Xtensa::L32R))
-        .addReg(DST.getReg())
-        .addJumpTableIndex(ADDR.getImm());
+//    MachineInstrBuilder Bld =
+//        BuildMI(*MBB, MI, DL, TII.get(Xtensa::L32R), DST.getReg());
+
+	switch (ADDR.getType()) { 
+	case MachineOperand::MO_BlockAddress: 
+		{
+		  const BlockAddress* BA = ADDR.getBlockAddress();
+          BasicBlock *BB = BA->getBasicBlock();
+        }
+		break;
+     default: llvm_unreachable("Unexpected LA address operand"); 
+	}
+
+    //    Bld.addJumpTableIndex(ADDR.getImm());
     MI.eraseFromParent();
 
 #if 0
@@ -1926,6 +1962,18 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
     MI.eraseFromParent();
     return MBB;
   }
+
+					  /*
+  case Xtensa::L32_FP: {
+    MI.dump();
+    return MBB;
+  }
+  
+ case Xtensa::S32_FP: {
+    MI.dump();
+    return MBB;
+  }
+  */
 
   /*
     case Xtensa::SETCC_EQZ:

@@ -195,17 +195,32 @@ def SSAI: RRR_Inst<0x00, 0x00, 0x04, (outs), (ins shimm5:$imm),
   let t = !srl(imm, 4);
 }
 
+/*
+let usesCustomInserter = 1 in
+{
+   let mayLoad = 1 in
+   def L32_FP : Pseudo<(outs AR:$dst), (ins mem_fp:$addr),
+                                  "!l32_fp $dst, $addr",
+                                  [(set AR:$dst, (load addr_fp:$addr))]>;
+
+   let mayStore = 1 in
+   def S32_FP: Pseudo<(outs), (ins AR:$src, mem_fp:$addr),
+                                  "!s32_p $src, $addr",
+								  [(store AR:$src, addr_fp:$addr)]>;
+}
+*/
+
 // Load instructions
 let mayLoad = 1 in
 {
   def L32I_N: RRRN_Inst<0x8, (outs AR:$t), (ins mem32n:$addr), 
                 "l32i.n\t$t, $addr", 
-                [(set AR:$t, (load addr:$addr))]>;
+                [/*(set AR:$t, (load addrn:$addr))*/]>;
 
   class Load_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
-      Operand memOp>: RRI8_Inst<0x02, (outs AR:$t), (ins memOp:$addr), 
+      ComplexPattern addrOp, Operand memOp>: RRI8_Inst<0x02, (outs AR:$t), (ins memOp:$addr), 
                 instrAsm#"\t$t, $addr", 
-                [(set AR:$t, (opNode addr:$addr))]>
+                [(set AR:$t, (opNode addrOp:$addr))]>
   {
     let r = oper;
   }
@@ -215,42 +230,42 @@ let mayLoad = 1 in
 // Xtensa missed L8I load operation
 /*
 let usesCustomInserter = 1 in
-def L8I: Pseudo<(outs AR:$t), (ins addr:$addr),
+def L8I: Pseudo<(outs AR:$t), (ins addr_ish1:$addr),
                "!L8I $t, $addr",
                 [(set AR:$t, (sextloadi8 addr:$addr))]>;
 */
-def L8I: Load_RRI8<0x09, "l8ui", sextloadi8, mem8>;
+def L8I: Load_RRI8<0x09, "l8ui", sextloadi8, addr_ish1, mem8>;
 
-def L8UI: Load_RRI8<0x09, "l8ui", zextloadi8, mem8>;
-def L16SI: Load_RRI8<0x09, "l16si", sextloadi16, mem16>;
-def L16UI: Load_RRI8<0x01, "l16ui", zextloadi16, mem16>;
-def L32I: Load_RRI8<0x02, "l32i", load, mem32>;
+def L8UI: Load_RRI8<0x09, "l8ui", zextloadi8, addr_ish1, mem8>;
+def L16SI: Load_RRI8<0x09, "l16si", sextloadi16, addr_ish2, mem16>;
+def L16UI: Load_RRI8<0x01, "l16ui", zextloadi16, addr_ish2, mem16>;
+def L32I: Load_RRI8<0x02, "l32i", load, addr_ish4, mem32>;
 
 //extended loads
-def : Pat<(i32 (extloadi1  addr:$addr)), (L8UI addr:$addr)>;
-def : Pat<(i32 (extloadi8  addr:$addr)), (L8UI addr:$addr)>;
-def : Pat<(i32 (extloadi16 addr:$addr)), (L16UI addr:$addr)>;
+def : Pat<(i32 (extloadi1  addr_ish1:$addr)), (L8UI addr_ish1:$addr)>;
+def : Pat<(i32 (extloadi8  addr_ish2:$addr)), (L8UI addr_ish2:$addr)>;
+def : Pat<(i32 (extloadi16 addr_ish4:$addr)), (L16UI addr_ish4:$addr)>;
 
 // Store instructions
 let mayStore = 1 in
 {
   def S32I_N: RRRN_Inst<0x8, (outs), (ins AR:$t, mem32n:$addr),
               "s32i.n\t$t, $addr", 
-              [(store AR:$t, addr:$addr)]>;
+              [/*(store AR:$t, addrn:$addr)*/]>;
 
   class Store_II8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
-      Operand memOp>: RRI8_Inst<0x02, (outs), (ins AR:$t, memOp:$addr),
+      ComplexPattern addrOp, Operand memOp>: RRI8_Inst<0x02, (outs), (ins AR:$t, memOp:$addr),
               instrAsm#"\t$t, $addr", 
-              [(opNode AR:$t, addr:$addr)]>
+              [(opNode AR:$t, addrOp:$addr)]>
   {
     let r = oper;
   }
 
 }
 
-def S8I: Store_II8<0x04, "s8i", truncstorei8, mem8>;
-def S16I: Store_II8<0x05, "s16i", truncstorei16, mem16>;
-def S32I: Store_II8<0x06, "s32i", store, mem32>;
+def S8I: Store_II8<0x04, "s8i", truncstorei8, addr_ish1, mem8>;
+def S16I: Store_II8<0x05, "s16i", truncstorei16, addr_ish2, mem16>;
+def S32I: Store_II8<0x06, "s32i", store, addr_ish4, mem32>;
  
 def L32R: RI16_Inst<0x01, (outs AR:$t), (ins imm32:$label), "l32r\t$t, $label", 
     []>;
@@ -299,20 +314,21 @@ let usesCustomInserter = 1 in
 
 let isCodeGenOnly = 1, mayLoad = 1 in
 {
-  def LEA_ADD_N : RRRN_Inst<0x0A,(outs AR:$t), (ins mem32n:$addr),
+/*
+  def LEA_ADD_N : RRRN_Inst<0x0A, (outs AR:$t), (ins mem32n:$addr),
        "addi.n\t$t, $addr",
-       [(set AR:$t, addr:$addr)]>
+       [(set AR:$t, addrn:$addr)]>
   {
   }  
+*/
 
   def LEA_ADD : RRI8_Inst<0x02, (outs AR:$t), (ins mem32:$addr),
        "addi\t$t, $addr",
-       [(set AR:$t, addr:$addr)]>
+       [(set AR:$t, addr_ish4:$addr)]>
   {
     let r = 0x0C;
   }
 }
-
 
 
 // Conditional branch instructions
@@ -652,28 +668,28 @@ def NEG_S: RRR_Inst<0x00, 0x0A, 0x0F, (outs FPR:$r), (ins FPR:$s),
 } 
 
 def TRUNC_S: RRR_Inst<0x00, 0x0A, 0x09, (outs AR:$r), (ins FPR:$s),
-     "trunc.s\t$r, $s",
+     "trunc.s\t$r, $s, 0",
      [(set AR:$r, (fp_to_sint FPR:$s))]> 
 {
   let t = 0x00;
 } 
 
 def UTRUNC_S: RRR_Inst<0x00, 0x0A, 0x0e, (outs AR:$r), (ins FPR:$s),
-     "utrunc.s\t$r, $s",
+     "utrunc.s\t$r, $s, 0",
      [(set AR:$r, (fp_to_uint FPR:$s))]> 
 {
   let t = 0x00;
 } 
 
 def FLOAT_S: RRR_Inst<0x00, 0x0A, 0x0c, (outs FPR:$r), (ins AR:$s),
-     "float.s\t$r, $s",
+     "float.s\t$r, $s, 0",
      [(set FPR:$r, (sint_to_fp AR:$s))]> 
 {
   let t = 0x00;
 } 
 
 def UFLOAT_S: RRR_Inst<0x00, 0x0A, 0x0c, (outs FPR:$r), (ins AR:$s),
-     "ufloat.s\t$r, $s",
+     "ufloat.s\t$r, $s, 0",
      [(set FPR:$r, (uint_to_fp AR:$s))]> 
 {
   let t = 0x00;
@@ -696,35 +712,32 @@ def WFR: RRR_Inst<0x05, 0x0A, 0x0f, (outs FPR:$r), (ins AR:$s),
 // FP load instructions
 let mayLoad = 1 in
 {
-  //def L32F: RRRN_Inst<0x8, (outs FPR:$t), (ins mem32n:$addr), 
-  //              "lsi\t$t, $addr", 
-  //              [(set FPR:$t, (load addr:$addr))]>;
-
   class LoadF_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
-      Operand memOp>: RRI8_Inst<0x03, (outs FPR:$t), (ins memOp:$addr), 
+     // ComplexPattern addrOp, Operand memOp>: RRI8_Inst<0x02, (outs), (ins AR:$t, memOp:$addr),
+      ComplexPattern addrOp,Operand memOp>: RRI8_Inst<0x03, (outs FPR:$t), (ins memOp:$addr), 
                 instrAsm#"\t\t$t, $addr", 
-                [(set FPR:$t, (opNode addr:$addr))]>
+                [(set FPR:$t, (opNode addrOp:$addr))]>
   {
     let r = oper;
   }
 }
 
-def L32F: LoadF_RRI8<0x00, "lsi", load, mem32>;
+def L32F: LoadF_RRI8<0x00, "lsi", load, addr_ish4, mem32>;
 
 // FP store instructions
 let mayStore = 1 in
 {
-  class StoreF_II8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
-      Operand memOp>: RRI8_Inst<0x03, (outs), (ins FPR:$t, memOp:$addr),
+  class StoreF_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
+      ComplexPattern addrOp, Operand memOp>: RRI8_Inst<0x03, (outs), (ins FPR:$t, memOp:$addr),
               instrAsm#"\t\t$t, $addr", 
-              [(opNode FPR:$t, addr:$addr)]>
+              [(opNode FPR:$t, addrOp:$addr)]>
   {
     let r = oper;
   }
 
 }
 
-def S32F: StoreF_II8<0x04, "ssi", store, mem32>;
+def S32F: StoreF_RRI8<0x04, "ssi", store, addr_ish4, mem32>;
 
 // FP compare instructions
 
@@ -788,10 +801,10 @@ def MOV_S: RRR_Inst<0x00, 0x0A, 0x0f, (outs FPR:$r), (ins FPR:$s),
 
 let isBranch = 1, isTerminator = 1, isBarrier = 1, Uses = [b0] in 
 {
-  def BTs: CALL_Inst<0x06, (outs), (ins brtarget:$offset), "bt\t$offset", 
+  def BTs: CALL_Inst<0x06, (outs), (ins brtarget:$offset), "bt\tb0, $offset", 
           [(Xtensa_brcc_t bb:$offset)]>;
 
-  def BFs: CALL_Inst<0x06, (outs), (ins brtarget:$offset), "bf\t$offset", 
+  def BFs: CALL_Inst<0x06, (outs), (ins brtarget:$offset), "bf\tb0, $offset", 
           [(Xtensa_brcc_f bb:$offset)]>;
 }
 
@@ -806,5 +819,3 @@ def MOVT: RRR_Inst<0x00, 0x00, 0x04, (outs AR:$r), (ins AR:$s),
 {
   let Uses = [b0];
 }
-
-

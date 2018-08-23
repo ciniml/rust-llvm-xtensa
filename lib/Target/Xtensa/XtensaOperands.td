@@ -115,13 +115,18 @@ class mem<Operand offset> : Operand<i32>
   let PrintMethod = "printMemOperand";
 }
 
+def mem_fp: mem<imm12>;
+def addr_fp: ComplexPattern<iPTR, 2, "selectFrameIndex", [frameindex]>;
+
 def mem8: mem<offset8m8>;
 def mem16: mem<offset8m16>;
 def mem32: mem<offset8m32>;
 def mem32n: mem<offset4m32>;
 
-def addrn: ComplexPattern<iPTR, 2, "selectMemRegAddrN", [frameindex]>;
-def addr: ComplexPattern<iPTR, 2, "selectMemRegAddr", [frameindex]>;
+def addrn: ComplexPattern<iPTR, 2, "selectMemRegAddrN", []>;
+def addr_ish1: ComplexPattern<iPTR, 2, "selectMemRegAddrISH1", [frameindex]>;
+def addr_ish2: ComplexPattern<iPTR, 2, "selectMemRegAddrISH2", [frameindex]>;
+def addr_ish4: ComplexPattern<iPTR, 2, "selectMemRegAddrISH4", [frameindex]>;
 
 //===----------------------------------------------------------------------===//
 // Symbolic address operands

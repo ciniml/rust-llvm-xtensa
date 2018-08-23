@@ -28,6 +28,7 @@ void XtensaAsmPrinter::EmitConstantPool() {
   if (CP.empty())
     return;
 
+  OutStreamer->EmitRawText("\t.text");
   OutStreamer->EmitRawText("\t.literal_position");
   for (unsigned i = 0, e = CP.size(); i != e; ++i) {
     const MachineConstantPoolEntry &CPE = CP[i];
@@ -39,11 +40,11 @@ void XtensaAsmPrinter::EmitConstantPool() {
       EmitMachineConstantPoolValue(CPE.Val.MachineCPVal);
     } else {
       MCSymbol *LblSym = GetCPISymbol(i);
+
       std::string str("\t.literal ");
       str += LblSym->getName();
       str += ", ";
-      if (CPE.Val.ConstVal->getType()->getTypeID() == llvm::Type::FloatTyID)
-	  {
+      if (CPE.Val.ConstVal->getType()->getTypeID() == llvm::Type::FloatTyID) {
         const ConstantFP *CFPVal =
             static_cast<const ConstantFP *>(CPE.Val.ConstVal);
         str += CFPVal->getValueAPF().bitcastToAPInt().toString(10, true);
@@ -51,7 +52,9 @@ void XtensaAsmPrinter::EmitConstantPool() {
         const ConstantInt *CVal =
             static_cast<const ConstantInt *>(CPE.Val.ConstVal);
         str += CVal->getValue().toString(10, true);
-	  }
+      }
+
+
       OutStreamer->EmitRawText(str);   
     }
   }

@@ -134,7 +134,7 @@ public:
 
   const GlobalValue *getGV() const;
   const BlockAddress *getBlockAddress() const;
-#if 0
+#if 1
   int getExistingMachineCPValue(MachineConstantPool *CP,
                                 unsigned Alignment) override;
 #endif

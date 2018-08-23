@@ -1,6 +1,6 @@
+#include "XtensaInstrInfo.h"
 #include "XtensaRegisterInfo.h"
 #include "XtensaSubtarget.h"
-#include "XtensaInstrInfo.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/Support/Debug.h"
@@ -23,34 +23,30 @@ static const uint32_t CSRWE_Xtensa_RegMask[] = {0};
 XtensaRegisterInfo::XtensaRegisterInfo(const XtensaSubtarget &STI)
     : XtensaGenRegisterInfo(Xtensa::a0), Subtarget(STI) {}
 
-const uint16_t*
-XtensaRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const 
-{
+const uint16_t *
+XtensaRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   if (Subtarget.isWinABI())
-    return CSRWE_Xtensa_SaveList;  // CSRW_Xtensa_SaveList ?
-  else if(Subtarget.isESP8266())
+    return CSRWE_Xtensa_SaveList; // CSRW_Xtensa_SaveList ?
+  else if (Subtarget.isESP8266())
     return CSR_Xtensa_SaveList;
   else if (Subtarget.isESP32())
     return CSR_Xtensa_SaveList;
 }
 
-const uint32_t*
+const uint32_t *
 XtensaRegisterInfo::getCallPreservedMask(const MachineFunction &MF,
-    CallingConv::ID) const 
-{
+                                         CallingConv::ID) const {
   if (Subtarget.isWinABI())
     return CSRWE_Xtensa_RegMask;
-  else return CSR_Xtensa_RegMask;
+  else
+    return CSR_Xtensa_RegMask;
 }
 
-BitVector
-XtensaRegisterInfo::getReservedRegs(const MachineFunction &MF) const 
-{
+BitVector XtensaRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
 
-  if (TFI->hasFP(MF)) 
-  {
+  if (TFI->hasFP(MF)) {
     // fp is the frame pointer.  Reserve all aliases.
     Reserved.set(Xtensa::a15);
   }
@@ -63,8 +59,7 @@ XtensaRegisterInfo::getReservedRegs(const MachineFunction &MF) const
 void XtensaRegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
                                      unsigned OpNo, int FrameIndex,
                                      uint64_t StackSize,
-                                     int64_t SPOffset) const 
-{
+                                     int64_t SPOffset) const {
   MachineInstr &MI = *II;
   MachineFunction &MF = *MI.getParent()->getParent();
   MachineFrameInfo &MFI = MF.getFrameInfo();
@@ -74,8 +69,7 @@ void XtensaRegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
   int MinCSFI = 0;
   int MaxCSFI = -1;
 
-  if (CSI.size()) 
-  {
+  if (CSI.size()) {
     MinCSFI = CSI[0].getFrameIdx();
     MaxCSFI = CSI[CSI.size() - 1].getFrameIdx();
   }
@@ -107,53 +101,69 @@ void XtensaRegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
   Offset = SPOffset + (int64_t)StackSize;
   // loads and stores have the immediate before the FI
   // FIXME: this is a bit hacky
-  if(MI.mayLoadOrStore())
+  if (MI.mayLoadOrStore())
     Offset += MI.getOperand(OpNo - 1).getImm();
   else
     Offset += MI.getOperand(OpNo + 1).getImm();
 
-  DEBUG(errs() << "Offset     : " << Offset << "\n" << "<--------->\n");
+  DEBUG(errs() << "Offset     : " << Offset << "\n"
+               << "<--------->\n");
+
+  bool Valid = false;
+  switch (MI.getOpcode()) {
+  case Xtensa::L8I:
+  case Xtensa::L8UI:
+  case Xtensa::S8I:
+    Valid = (Offset >= 0 && Offset <= 255); 
+    break;
+  case Xtensa::L16SI:
+  case Xtensa::L16UI:
+  case Xtensa::S16I:
+    Valid = (Offset >= 0 && Offset <= 510);
+    break;
+  default:
+    Valid = (Offset >= 0 && Offset <= 1020);
+    break;
+  }
 
   // If MI is not a debug value, make sure Offset fits in the 16-bit immediate
   // field.
-  if (!MI.isDebugValue() && !isInt<12>(Offset)) 
-  {
+  if (!MI.isDebugValue() && !Valid) {
     MachineBasicBlock &MBB = *MI.getParent();
     DebugLoc DL = II->getDebugLoc();
     unsigned ADD = Xtensa::ADD;
     unsigned Reg;
-    const XtensaInstrInfo &TII =
-        *static_cast<const XtensaInstrInfo *>(
-            MBB.getParent()->getSubtarget().getInstrInfo());
+    const XtensaInstrInfo &TII = *static_cast<const XtensaInstrInfo *>(
+        MBB.getParent()->getSubtarget().getInstrInfo());
 
     TII.loadImmediate(MBB, II, &Reg, Offset);
-    BuildMI(MBB, II, DL, TII.get(ADD), Reg).addReg(FrameReg)
-      .addReg(Reg, RegState::Kill);
+    BuildMI(MBB, II, DL, TII.get(ADD), Reg)
+        .addReg(FrameReg)
+        .addReg(Reg, RegState::Kill);
 
     FrameReg = Reg;
-    Offset = SignExtend64<12>(0);
+    Offset = 0;
     IsKill = true;
   }
 
   MI.getOperand(OpNo).ChangeToRegister(FrameReg, false, false, IsKill);
   // loads and stores have the immediate before the FI
   // FIXME: this is a bit hacky
-  if(MI.mayLoadOrStore())
+  if (MI.mayLoadOrStore())
     MI.getOperand(OpNo - 1).ChangeToImmediate(Offset);
   else
     MI.getOperand(OpNo + 1).ChangeToImmediate(Offset);
 }
 
-void
-XtensaRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
-                                         int SPAdj, unsigned FIOperandNum,
-                                         RegScavenger *RS) const 
-{
+void XtensaRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
+                                             int SPAdj, unsigned FIOperandNum,
+                                             RegScavenger *RS) const {
   MachineInstr &MI = *II;
   MachineFunction &MF = *MI.getParent()->getParent();
 
-  DEBUG(errs() << "\nFunction : " << MF.getName() << "\n";
-        errs() << "<--------->\n" << MI);
+  DEBUG(errs() << "\nFunction : " << MF.getName() << "\n"; errs()
+                                                           << "<--------->\n"
+                                                           << MI);
 
   int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
   uint64_t stackSize = MF.getFrameInfo().getStackSize();
@@ -166,11 +176,8 @@ XtensaRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   eliminateFI(MI, FIOperandNum, FrameIndex, stackSize, spOffset);
 }
 
-unsigned
-XtensaRegisterInfo::getFrameRegister(const MachineFunction &MF) const 
-{
+unsigned XtensaRegisterInfo::getFrameRegister(const MachineFunction &MF) const {
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
-  return TFI->hasFP(MF) ?  
-	  (Subtarget.isWinABI() ? Xtensa::a7 :  Xtensa::a15) : 
-	    Xtensa::sp;
+  return TFI->hasFP(MF) ? (Subtarget.isWinABI() ? Xtensa::a7 : Xtensa::a15)
+                        : Xtensa::sp;
 }

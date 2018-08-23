@@ -32,6 +32,7 @@ int XtensaConstantPoolValue::getExistingMachineCPValue(MachineConstantPool *CP,
   llvm_unreachable("Shouldn't be calling this directly!");
 }
 
+
 void
 XtensaConstantPoolValue::addSelectionDAGCSEId(FoldingSetNodeID &ID) 
 {
@@ -123,7 +124,7 @@ const BlockAddress *XtensaConstantPoolConstant::getBlockAddress() const
 {
   return dyn_cast_or_null<BlockAddress>(CVal);
 }
-#if 0
+#if 1
 int XtensaConstantPoolConstant::getExistingMachineCPValue(MachineConstantPool *CP,
                                                        unsigned Alignment) 
 {

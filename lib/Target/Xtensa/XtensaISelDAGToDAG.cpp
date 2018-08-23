@@ -72,13 +72,17 @@ class XtensaDAGToDAGISel : public SelectionDAGISel {
   void getAddressOperands(const XtensaAddressingMode &AM, EVT VT, SDValue &Base,
                           SDValue &Disp, SDValue &Index);
 
-  bool selectMemRegAddr(SDValue Addr, SDValue &Offset, SDValue &Base) {
+  bool selectMemRegAddr(SDValue Addr, SDValue &Offset, SDValue &Base,
+                        int Scale) {
     EVT ValTy = Addr.getValueType();
 
     // if Address is FI, get the TargetFrameIndex.
     if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
+      MachineFrameInfo& MFI = MF->getFrameInfo();
+ 
       Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
       Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), ValTy);
+
       return true;
     }
 
@@ -94,14 +98,14 @@ class XtensaDAGToDAGISel : public SelectionDAGISel {
       ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1));
       int64_t OffsetVal = CN->getSExtValue();
 
-      switch (ValTy.getSizeInBits()) {
-      case 8:
+      switch (Scale) {
+      case 1:
         Valid = (OffsetVal >= 0 && OffsetVal <= 255);
         break;
-      case 16:
+      case 2:
         Valid = (OffsetVal >= 0 && OffsetVal <= 510);
         break;
-      case 32:
+      case 4:
         Valid = (OffsetVal >= 0 && OffsetVal <= 1020);
         break;
       default:
@@ -128,17 +132,29 @@ class XtensaDAGToDAGISel : public SelectionDAGISel {
     return true;
   }
 
+  bool selectMemRegAddrISH1(SDValue Addr, SDValue &Offset, SDValue &Base) {
+    return selectMemRegAddr(Addr, Offset, Base, 1);
+  }
+
+  bool selectMemRegAddrISH2(SDValue Addr, SDValue &Offset, SDValue &Base) {
+    return selectMemRegAddr(Addr, Offset, Base, 2);
+  }
+
+  bool selectMemRegAddrISH4(SDValue Addr, SDValue &Offset, SDValue &Base) {
+    return selectMemRegAddr(Addr, Offset, Base, 4);
+  }
+
   bool selectMemRegAddrN(SDValue Addr, SDValue &Offset, SDValue &Base) {
     EVT ValTy = Addr.getValueType();
     if (ValTy.getScalarSizeInBits() != 32)
       return false;
 
     // if Address is FI, get the TargetFrameIndex.
-    if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
-      Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
-      Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), ValTy);
-      return true;
-    }
+//    if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
+//      Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
+//      Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), ValTy);
+//      return true;
+//    }
 
     if (TM.getRelocationModel() != Reloc::PIC_) {
       if ((Addr.getOpcode() == ISD::TargetExternalSymbol ||
@@ -155,10 +171,10 @@ class XtensaDAGToDAGISel : public SelectionDAGISel {
       if (OffsetVal >= 0 && OffsetVal <= 60) {
 
         // If the first operand is a FI, get the TargetFI Node
-        if (FrameIndexSDNode *FIN =
-                dyn_cast<FrameIndexSDNode>(Addr.getOperand(0)))
-          Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
-        else
+//        if (FrameIndexSDNode *FIN =
+//                dyn_cast<FrameIndexSDNode>(Addr.getOperand(0)))
+//          Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
+//        else
           Base = Addr.getOperand(0);
 
         Offset =
@@ -170,6 +186,36 @@ class XtensaDAGToDAGISel : public SelectionDAGISel {
     // Last case
     //  Base = Addr;
     //  Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), Addr.getValueType());
+    return false;
+  }
+
+  bool selectFrameIndex(SDValue Addr, SDValue &Offset, SDValue &Base) {
+    EVT ValTy = Addr.getValueType();
+
+    // if Address is FI, get the TargetFrameIndex.
+    if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
+      //      MachineFrameInfo& MFI = MF->getFrameInfo();
+
+      Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
+      Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), ValTy);
+
+      return true;
+    }
+    if (CurDAG->isBaseWithConstantOffset(Addr)) {
+      ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1));
+      int64_t OffsetVal = CN->getSExtValue();
+
+         // If the first operand is a FI, get the TargetFI Node
+        if (FrameIndexSDNode *FIN =
+                dyn_cast<FrameIndexSDNode>(Addr.getOperand(0)))
+          Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
+        else
+          Base = Addr.getOperand(0);
+
+        Offset =
+            CurDAG->getTargetConstant(CN->getZExtValue(), SDLoc(Addr), ValTy);
+        return true;
+    }
     return false;
   }
 
@@ -454,11 +500,12 @@ bool XtensaDAGToDAGISel::SelectInlineAsmMemoryOperand(
     llvm_unreachable("Unexpected asm memory constraint");
   case InlineAsm::Constraint_m: {
     SDValue Base, Offset;
-    selectMemRegAddr(Op, Base, Offset);
+	// TODO
+    selectMemRegAddr(Op, Base, Offset, 4);
     OutOps.push_back(Base);
     OutOps.push_back(Offset);
     return false;
-  }	  
+  }
   case InlineAsm::Constraint_i:
   case InlineAsm::Constraint_R:
   case InlineAsm::Constraint_ZC:

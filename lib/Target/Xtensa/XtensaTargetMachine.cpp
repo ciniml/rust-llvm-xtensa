@@ -119,6 +119,7 @@ bool XtensaPassConfig::addInstSelector()
 void XtensaPassConfig::addPreEmitPass()
 {
   addPass(createXtensaBranchSelectionPass());
+  addPass(createXtensaSizeReductionPass());
 }
 
 TargetPassConfig *XtensaTargetMachine::createPassConfig(PassManagerBase &PM) 
