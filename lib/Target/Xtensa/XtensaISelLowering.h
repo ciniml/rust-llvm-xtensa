@@ -69,9 +69,9 @@ namespace XtensaISD
     CMPULT,
     CMPUO,
     // Floating point compare conditions
-    CMPEQ,
-    CMPLE,
-    CMPLT,
+    CMPOEQ,
+    CMPOLE,
+    CMPOLT,
     // Predicate MOV
     MOVF,
     MOVT,

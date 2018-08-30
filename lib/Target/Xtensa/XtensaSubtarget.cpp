@@ -32,8 +32,8 @@ XtensaSubtarget::XtensaSubtarget(const Triple &TT, const std::string &CPU,
       TargetTriple(TT),
       InstrInfo(initializeSubtargetDependencies(CPU,FS)), TLInfo(TM, *this), 
       TSInfo(), FrameLowering(),
-      UseSmallSection(false), UseSoftFloat(false), HasF(true) /* TODO */
-     // UseSmallSection(false), UseSoftFloat(true), HasF(false) /* TODO */    
+      UseSmallSection(false), UseSoftFloat(false), HasF(true) /* TODO */  
+	  //UseSmallSection(false), UseSoftFloat(true), HasF(false) /* TODO */
 {
 }
 

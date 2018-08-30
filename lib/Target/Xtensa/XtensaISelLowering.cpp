@@ -36,7 +36,8 @@ void XtensaTargetObjectFile::Initialize(MCContext &Ctx, const TargetMachine &TM)
 // resolve a functions in ROM (usually glibc functions)
 static bool isLongCall(const char *str) {
   std::string name(str);
-  if (name.find("__") == 0 || name.find("str") == 0 || name.find("mem") == 0 || name == "malloc")
+  if (name.find("__") == 0 || name.find("str") == 0 || name.find("mem") == 0 ||
+      name == "malloc")
     return true;
   return false;
 }
@@ -56,8 +57,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   MVT PtrVT = MVT::i32;
   // Set up the register classes.
   addRegisterClass(MVT::i32, &Xtensa::ARRegClass);
-  if (Subtarget.hasF())
-  {
+  if (Subtarget.hasF()) {
     addRegisterClass(MVT::f32, &Xtensa::FPRRegClass);
   }
 
@@ -72,13 +72,13 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
       ZeroOrOneBooleanContent); // vectors of i1s are the same
 
   // Used by legalize types to correctly generate the setcc result.
-  //AddPromotedToType(ISD::SETCC, MVT::i1, MVT::i32);
+  // AddPromotedToType(ISD::SETCC, MVT::i1, MVT::i32);
   setOperationPromotedToType(ISD::SETCC, MVT::i1, MVT::i32);
   setOperationPromotedToType(ISD::BR_CC, MVT::i1, MVT::i32);
 
   setMinFunctionAlignment(1);
 
-  setOperationAction(ISD::BR_CC, MVT::i32, Expand);
+  setOperationAction(ISD::BR_CC, MVT::i32, Legal);
   setOperationAction(ISD::BR_CC, MVT::i64, Expand);
   setOperationAction(ISD::BR_CC, MVT::f32, Custom);
 
@@ -291,28 +291,24 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   // them
   setOperationAction(ISD::ATOMIC_FENCE, MVT::Other, Custom);
 
-  if (Subtarget.hasF())
-  { 
-  setCondCodeAction(ISD::SETOEQ, MVT::f32, Expand);
-  setCondCodeAction(ISD::SETOGT, MVT::f32, Expand);
-  setCondCodeAction(ISD::SETOGE, MVT::f32, Expand);
-  setCondCodeAction(ISD::SETOLT, MVT::f32, Expand);
-  setCondCodeAction(ISD::SETOLE, MVT::f32, Expand);
-  setCondCodeAction(ISD::SETONE, MVT::f32, Expand);
-  setCondCodeAction(ISD::SETUGE, MVT::f32, Expand);
-  setCondCodeAction(ISD::SETUGT, MVT::f32, Expand);
-  setCondCodeAction(ISD::SETUNE, MVT::f32, Expand);
-  }
+  if (Subtarget.hasF()) {
+    setCondCodeAction(ISD::SETOGT, MVT::f32, Expand);
+    setCondCodeAction(ISD::SETOGE, MVT::f32, Expand);
+    setCondCodeAction(ISD::SETONE, MVT::f32, Expand);
+    setCondCodeAction(ISD::SETUGE, MVT::f32, Expand);
+    setCondCodeAction(ISD::SETUGT, MVT::f32, Expand);
+    setCondCodeAction(ISD::SETUNE, MVT::f32, Expand);
 
-  setTargetDAGCombine(ISD::FADD);
-  setTargetDAGCombine(ISD::FSUB);
+    setTargetDAGCombine(ISD::FADD);
+    setTargetDAGCombine(ISD::FSUB);
+    setTargetDAGCombine(ISD::BRCOND);
+  }
 
   // Compute derived properties from the register classes
   computeRegisterProperties(STI.getRegisterInfo());
-  //if (Subtarget.hasF())
-  {
-  addRegisterClass(MVT::i1, &Xtensa::BRRegClass);
-  }
+
+  // if (Subtarget.hasF())
+  { addRegisterClass(MVT::i1, &Xtensa::BRRegClass); }
 }
 
 /// If a physical register, this returns the register that receives the
@@ -515,6 +511,31 @@ static SDValue performADDCombine(SDNode *N, SelectionDAG &DAG,
   return SDValue();
 }
 
+static SDValue performBRCONDCombine(SDNode *N, SelectionDAG &DAG,
+                                 TargetLowering::DAGCombinerInfo &DCI,
+                                 const XtensaSubtarget &Subtarget) {
+  if (DCI.isBeforeLegalizeOps()) 
+  {
+    SDValue Chain = N->getOperand(0);
+
+	if (N->getOperand(1).getOpcode() != ISD::SETCC)
+      return SDValue();
+
+    SDLoc DL(N);
+    SDValue SetCC = N->getOperand(1);
+    SDValue Dest = N->getOperand(2);
+    ISD::CondCode CC = cast<CondCodeSDNode>(SetCC->getOperand(2))->get();
+    SDValue LHS = SetCC->getOperand(0);
+    SDValue RHS = SetCC->getOperand(1);
+
+    if (LHS.getValueType() != MVT::i32)
+      return SDValue();
+
+    return DAG.getNode(ISD::BR_CC, DL, MVT::isVoid, Chain, DAG.getCondCode(CC), LHS, RHS, Dest);
+  }
+  return SDValue();
+}
+
 SDValue XtensaTargetLowering::PerformDAGCombine(SDNode *N,
                                                 DAGCombinerInfo &DCI) const {
   SelectionDAG &DAG = DCI.DAG;
@@ -527,6 +548,8 @@ SDValue XtensaTargetLowering::PerformDAGCombine(SDNode *N,
     return performADDCombine(N, DAG, DCI, Subtarget);
   case ISD::FSUB:
     return performSUBCombine(N, DAG, DCI, Subtarget);
+  case ISD::BRCOND:
+    return performBRCONDCombine(N, DAG, DCI, Subtarget);
   }
 
   return SDValue();
@@ -1052,7 +1075,6 @@ static SDValue EmitCMP(SDValue &LHS, SDValue &RHS, ISD::CondCode CC, SDLoc dl,
   switch (CC) {
   default:
     llvm_unreachable("Invalid integer condition!");
-    // ISD::getSetCCInverse(CC, 0);
     break;
   case ISD::SETUO:
     br_code = XtensaISD::BR_CC_T;
@@ -1075,32 +1097,34 @@ static SDValue EmitCMP(SDValue &LHS, SDValue &RHS, ISD::CondCode CC, SDLoc dl,
     cmp_code = XtensaISD::CMPULT;
     break;
   case ISD::SETEQ:
+  case ISD::SETOEQ:
     br_code = XtensaISD::BR_CC_T;
-    cmp_code = XtensaISD::CMPEQ;
+    cmp_code = XtensaISD::CMPOEQ;
     break;
   case ISD::SETNE:
     br_code = XtensaISD::BR_CC_F;
-    cmp_code = XtensaISD::CMPEQ;
+    cmp_code = XtensaISD::CMPOEQ;
     break;
   case ISD::SETLE:
+  case ISD::SETOLE:
     br_code = XtensaISD::BR_CC_T;
-    cmp_code = XtensaISD::CMPLE;
+    cmp_code = XtensaISD::CMPOLE;
+    break;
+  case ISD::SETLT:
+  case ISD::SETOLT:
+    br_code = XtensaISD::BR_CC_T;
+    cmp_code = XtensaISD::CMPOLT;
     break;
   case ISD::SETGE:
     br_code = XtensaISD::BR_CC_F;
-    cmp_code = XtensaISD::CMPLE;
+    cmp_code = XtensaISD::CMPOLT;
     break;
   case ISD::SETGT:
     br_code = XtensaISD::BR_CC_F;
-    cmp_code = XtensaISD::CMPLT;
-    break;
-  case ISD::SETLT:
-    br_code = XtensaISD::BR_CC_T;
-    cmp_code = XtensaISD::CMPLT;
+    cmp_code = XtensaISD::CMPOLE;
     break;
   }
-  // SDValue BR0 = DAG.getRegister(Xtensa::b0, MVT::i32);
-  return DAG.getNode(cmp_code, dl, MVT::Glue, LHS, RHS);
+  return DAG.getNode(cmp_code, dl, MVT::i1, LHS, RHS);
 }
 
 SDValue XtensaTargetLowering::lowerBR_CC(SDValue Op, SelectionDAG &DAG) const {
@@ -1111,36 +1135,16 @@ SDValue XtensaTargetLowering::lowerBR_CC(SDValue Op, SelectionDAG &DAG) const {
   SDValue Dest = Op.getOperand(4);
   SDLoc DL(Op);
 
-  int br_code;
-  SDValue Flag = EmitCMP(LHS, RHS, CC, DL, DAG, br_code);
-
-  return DAG.getNode(br_code, DL, Op.getValueType(), Chain, Dest, Flag);
+  if (LHS.getValueType() == MVT::f32) {
+    int br_code;
+    SDValue Flag = EmitCMP(LHS, RHS, CC, DL, DAG, br_code);
+    return DAG.getNode(br_code, DL, Op.getValueType(), Chain, Flag, Dest);
+  } else { //MVT::i32
+    SDValue setcc =
+        DAG.getNode(ISD::SETCC, DL, MVT::i32, LHS, RHS, DAG.getCondCode(CC));
+    return DAG.getNode(ISD::BRCOND, DL, Op.getValueType(), Chain, setcc, Dest);
+  }
 }
-#if 0
-SDValue XtensaTargetLowering::lowerSETCC_FP(SDValue Op, SelectionDAG &DAG) const {
-  SDValue LHS = Op.getOperand(0);
-  SDValue RHS = Op.getOperand(1);
-  SDLoc DL(Op);
-
-  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(2))->get();
-  int br_code;
-  SDValue Flag = EmitCMP(LHS, RHS, CC, DL, DAG, br_code);
-
-  EVT VT = Op.getValueType();
-  SDValue One = DAG.getConstant(1, DL, VT);
-  SDValue Zero = DAG.getConstant(0, DL, VT);
-  SDVTList VTs = DAG.getVTList(Op.getValueType(), MVT::Glue);
-  SmallVector<SDValue, 4> Ops;
-  Ops.push_back(One);
-  Ops.push_back(Zero);
-  Ops.push_back(Flag);
-  if (br_code == XtensaISD::BR_CC_T)
-    br_code = XtensaISD::SELECT_CC_T;
-  else
-    br_code = XtensaISD::SELECT_CC_F;
-  return DAG.getNode(br_code, DL, VTs, Ops);
-}
-#endif
 
 SDValue XtensaTargetLowering::lowerSELECT_CC(SDValue Op,
                                              SelectionDAG &DAG) const {
@@ -1158,11 +1162,11 @@ SDValue XtensaTargetLowering::lowerSELECT_CC(SDValue Op,
 
   // Wrap select nodes
   if (LHS.getValueType() == MVT::f32)
-    return DAG.getNode(XtensaISD::SELECT_CC_FP, DL, Ty, LHS, RHS, TrueV, FalseV,
+    return DAG.getNode(XtensaISD::SELECT_CC_FP, DL, TrueV.getValueType(), LHS, RHS, TrueV, FalseV,
                        TargetCC);
   else
     return DAG.getNode(XtensaISD::SELECT_CC, DL, Ty, LHS, RHS, TrueV, FalseV,
-                     TargetCC);
+                       TargetCC);
 }
 
 SDValue XtensaTargetLowering::lowerSETCC(SDValue Op, SelectionDAG &DAG) const {
@@ -1197,13 +1201,12 @@ SDValue XtensaTargetLowering::lowerSETCC(SDValue Op, SelectionDAG &DAG) const {
   SDVTList VTs = DAG.getVTList(Op.getValueType(), MVT::Glue);
 
   if (LHS.getValueType() == MVT::f32)
-    return DAG.getNode(XtensaISD::SELECT_CC_FP, DL, Ty, LHS, RHS, TrueV, FalseV,
+    return DAG.getNode(XtensaISD::SELECT_CC_FP, DL, TrueV.getValueType(), LHS, RHS, TrueV, FalseV,
                        TargetCC);
   else
     return DAG.getNode(XtensaISD::SELECT_CC, DL, Ty, LHS, RHS, TrueV, FalseV,
-                     TargetCC);
+                       TargetCC);
 }
-
 
 SDValue XtensaTargetLowering::lowerRETURNADDR(SDValue Op,
                                               SelectionDAG &DAG) const {
@@ -1338,11 +1341,11 @@ SDValue XtensaTargetLowering::lowerBlockAddress(BlockAddressSDNode *Node,
   int64_t Offset = Node->getOffset();
   EVT PtrVT = getPointerTy(DAG.getDataLayout());
 
-//  SDValue TBA = DAG.getTargetBlockAddress(BA, PtrVT, Offset);
-//  SDValue SDAddr = DAG.getTargetConstantPool(BA, PtrVT, 4);
+  //  SDValue TBA = DAG.getTargetBlockAddress(BA, PtrVT, Offset);
+  //  SDValue SDAddr = DAG.getTargetConstantPool(BA, PtrVT, 4);
 
-  XtensaConstantPoolValue *CPV = XtensaConstantPoolConstant::Create(
-     BA, 0, XtensaCP::CPBlockAddress, 0);
+  XtensaConstantPoolValue *CPV =
+      XtensaConstantPoolConstant::Create(BA, 0, XtensaCP::CPBlockAddress, 0);
   SDValue CPAddr = DAG.getTargetConstantPool(CPV, PtrVT, 4);
 
   SDValue CPWrap = getAddrPIC(CPAddr, DAG);
@@ -1566,9 +1569,9 @@ const char *XtensaTargetLowering::getTargetNodeName(unsigned Opcode) const {
     OPCODE(CMPUEQ);
     OPCODE(CMPULE);
     OPCODE(CMPULT);
-    OPCODE(CMPEQ);
-    OPCODE(CMPLE);
-    OPCODE(CMPLT);
+    OPCODE(CMPOEQ);
+    OPCODE(CMPOLE);
+    OPCODE(CMPOLT);
     OPCODE(MOVT);
     OPCODE(MOVF);
     OPCODE(MADD);
@@ -1772,6 +1775,7 @@ static void GetFPBranchKind(int Cond, int &BrKind, int &CmpKind) {
     CmpKind = Xtensa::ULT_S;
     break;
   case ISD::SETEQ:
+  case ISD::SETOEQ:
     BrKind = Xtensa::BTs;
     CmpKind = Xtensa::OEQ_S;
     break;
@@ -1780,20 +1784,22 @@ static void GetFPBranchKind(int Cond, int &BrKind, int &CmpKind) {
     CmpKind = Xtensa::OEQ_S;
     break;
   case ISD::SETLE:
+  case ISD::SETOLE:
     BrKind = Xtensa::BTs;
     CmpKind = Xtensa::OLE_S;
+    break;
+  case ISD::SETLT:
+  case ISD::SETOLT:
+    BrKind = Xtensa::BTs;
+    CmpKind = Xtensa::OLT_S;
     break;
   case ISD::SETGE:
     BrKind = Xtensa::BFs;
-    CmpKind = Xtensa::OLE_S;
+    CmpKind = Xtensa::OLT_S;
     break;
   case ISD::SETGT:
     BrKind = Xtensa::BFs;
-    CmpKind = Xtensa::OLT_S;
-    break;
-  case ISD::SETLT:
-    BrKind = Xtensa::BTs;
-    CmpKind = Xtensa::OLT_S;
+    CmpKind = Xtensa::OLE_S;
     break;
   }
 }
@@ -1843,11 +1849,13 @@ XtensaTargetLowering::emitSelectCC(MachineInstr &MI,
   if (MI.getOpcode() == Xtensa::SELECT_FP) {
     int BrKind = 0;
     int CmpKind = 0;
+    MachineFunction *MF = BB->getParent();
+    MachineRegisterInfo &RegInfo = MF->getRegInfo();
+    const TargetRegisterClass *RC = getRegClassFor(MVT::i1);
+    unsigned b = RegInfo.createVirtualRegister(RC);
     GetFPBranchKind(Cond.getImm(), BrKind, CmpKind);
-    BuildMI(BB, DL, TII.get(CmpKind)).addReg(LHS.getReg()).addReg(RHS.getReg());
-    BuildMI(BB, DL, TII.get(BrKind))
-
-        .addMBB(sinkMBB);
+    BuildMI(BB, DL, TII.get(CmpKind), b).addReg(LHS.getReg()).addReg(RHS.getReg());
+    BuildMI(BB, DL, TII.get(BrKind)).addReg(b).addMBB(sinkMBB);
   } else {
     int BrKind = GetBranchKind(Cond.getImm());
     BuildMI(BB, DL, TII.get(BrKind))
@@ -1895,18 +1903,17 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
     MachineOperand &DST = MI.getOperand(0);
     MachineOperand &ADDR = MI.getOperand(1);
 
-//    MachineInstrBuilder Bld =
-//        BuildMI(*MBB, MI, DL, TII.get(Xtensa::L32R), DST.getReg());
+    //    MachineInstrBuilder Bld =
+    //        BuildMI(*MBB, MI, DL, TII.get(Xtensa::L32R), DST.getReg());
 
-	switch (ADDR.getType()) { 
-	case MachineOperand::MO_BlockAddress: 
-		{
-		  const BlockAddress* BA = ADDR.getBlockAddress();
-          BasicBlock *BB = BA->getBasicBlock();
-        }
-		break;
-     default: llvm_unreachable("Unexpected LA address operand"); 
-	}
+    switch (ADDR.getType()) {
+    case MachineOperand::MO_BlockAddress: {
+      const BlockAddress *BA = ADDR.getBlockAddress();
+      BasicBlock *BB = BA->getBasicBlock();
+    } break;
+    default:
+      llvm_unreachable("Unexpected LA address operand");
+    }
 
     //    Bld.addJumpTableIndex(ADDR.getImm());
     MI.eraseFromParent();
@@ -1963,17 +1970,17 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
     return MBB;
   }
 
-					  /*
-  case Xtensa::L32_FP: {
-    MI.dump();
-    return MBB;
-  }
-  
- case Xtensa::S32_FP: {
-    MI.dump();
-    return MBB;
-  }
-  */
+    /*
+case Xtensa::L32_FP: {
+MI.dump();
+return MBB;
+}
+
+case Xtensa::S32_FP: {
+MI.dump();
+return MBB;
+}
+*/
 
   /*
     case Xtensa::SETCC_EQZ:

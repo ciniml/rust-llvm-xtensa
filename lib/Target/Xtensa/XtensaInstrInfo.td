@@ -332,78 +332,79 @@ let isCodeGenOnly = 1, mayLoad = 1 in
 
 
 // Conditional branch instructions
+
 let isBranch = 1, isTerminator = 1, isBarrier = 1 in 
 {
-  class Branch_RR<bits<4> oper, string instrAsm, SDPatternOperator opNode>: 
+  class Branch_RR<bits<4> oper, string instrAsm, CondCode CC>: 
         RRI8_Inst<0x07, (outs), 
               (ins AR:$s, AR:$t, brtarget:$target), 
               instrAsm#"\t$s, $t, $target", 
-              [(brcond (i32 (opNode AR:$s, AR:$t)), bb:$target)]>
+              [(brcc CC, AR:$s, AR:$t,  bb:$target)]>
   {
     let r = oper;
   }
 
-  class Branch_RR_rev<bits<4> oper, string instrAsm, SDPatternOperator opNode>: 
+  class Branch_RR_rev<bits<4> oper, string instrAsm, CondCode CC>:  
         RRI8_Inst<0x07, (outs), 
               (ins AR:$s, AR:$t, brtarget:$target), 
               instrAsm#"\t$t, $s, $target", 
-              [(brcond (i32 (opNode AR:$s, AR:$t)), bb:$target)]>
+              [(brcc CC, AR:$s, AR:$t,  bb:$target)]>
   {
     let r = oper;
   }
 
-  class Branch_RI<bits<4> oper, string instrAsm, SDPatternOperator opNode>: 
+  class Branch_RI<bits<4> oper, string instrAsm, CondCode CC>: 
         RRI8_Inst<0x06, (outs), 
               (ins AR:$s, b4const:$imm, brtarget:$target), 
               instrAsm#"\t$s, $imm, $target", 
-              [(brcond (i32 (opNode AR:$s, b4const:$imm)), bb:$target)]>
+              [(brcc CC, AR:$s, b4const:$imm,  bb:$target)]>
   {
     let t = oper;
   }
 
-  class Branch_RIU<bits<4> oper, string instrAsm, SDPatternOperator opNode>: 
+  class Branch_RIU<bits<4> oper, string instrAsm, CondCode CC>: 
         RRI8_Inst<0x06, (outs), 
               (ins AR:$s, b4constu:$imm, brtarget:$target), 
               instrAsm#"\t$s, $imm, $target", 
-              [(brcond (i32 (opNode AR:$s, b4constu:$imm)), bb:$target)]>
+              [(brcc CC, AR:$s, b4constu:$imm,  bb:$target)]>
   {
     let t = oper;
   }
 
-  class Branch_RZ<bits<4> oper, string instrAsm, SDPatternOperator opNode>: 
+  class Branch_RZ<bits<4> oper, string instrAsm, CondCode CC>: 
         RRI8_Inst<0x06, (outs), 
               (ins AR:$s, brtarget:$target), 
               instrAsm#"\t$s, $target", 
-              [(brcond (i32 (opNode AR:$s, (i32 0))), bb:$target)]>
+              [(brcc CC, AR:$s, (i32 0),  bb:$target)]>
   {
     let r = oper;
   }
 }
 
-def BEQ: Branch_RR<0x01, "beq", seteq>;
-def BNE: Branch_RR<0x09, "bne", setne>;
-def BGE: Branch_RR<0x0A, "bge", setge>;
-def BLT: Branch_RR<0x02, "blt", setlt>;
-def BGEU: Branch_RR<0x0B, "bgeu", setuge>;
-def BLTU: Branch_RR<0x03, "bltu", setult>;
+def BEQ: Branch_RR<0x01, "beq", SETEQ>;
+def BNE: Branch_RR<0x09, "bne", SETNE>;
+def BGE: Branch_RR<0x0A, "bge", SETGE>;
+def BLT: Branch_RR<0x02, "blt", SETLT>;
+def BGEU: Branch_RR<0x0B, "bgeu", SETUGE>;
+def BLTU: Branch_RR<0x03, "bltu", SETULT>;
 
 //Synthesize remaining condition codes by reverseing operands
-def BGT: Branch_RR_rev<0x02, "blt", setgt>;
-def BGTU: Branch_RR_rev<0x03, "bltu", setugt>;
-def BLE: Branch_RR_rev<0x0A, "bge", setle>;
-def BLEU: Branch_RR_rev<0x0B, "bgeu", setule>;
+def BGT: Branch_RR_rev<0x02, "blt", SETGT>;
+def BGTU: Branch_RR_rev<0x03, "bltu", SETUGT>;
+def BLE: Branch_RR_rev<0x0A, "bge", SETLE>;
+def BLEU: Branch_RR_rev<0x0B, "bgeu", SETULE>;
 
-def BEQI: Branch_RI<0x02, "beqi", seteq>;
-def BNEI: Branch_RI<0x06, "bnei", setne>;
-def BGEI: Branch_RI<0x0E, "bgei", setge>;
-def BLTI: Branch_RI<0x0A, "blti", setlt>;
-def BGEUI: Branch_RIU<0x0F, "bgeui", setuge>;
-def BLTUI: Branch_RIU<0x0B, "bltui", setult>;
+def BEQI: Branch_RI<0x02, "beqi", SETEQ>;
+def BNEI: Branch_RI<0x06, "bnei", SETNE>;
+def BGEI: Branch_RI<0x0E, "bgei", SETGE>;
+def BLTI: Branch_RI<0x0A, "blti", SETLT>;
+def BGEUI: Branch_RIU<0x0F, "bgeui", SETUGE>;
+def BLTUI: Branch_RIU<0x0B, "bltui", SETULT>;
 
-def BEQZ: Branch_RZ<0x01, "beqz", seteq>;
-def BNEZ: Branch_RZ<0x05, "bnez", setne>;
-def BGEZ: Branch_RZ<0x0D, "bgez", setge>;
-def BLTZ: Branch_RZ<0x09, "bltz", setlt>;
+def BEQZ: Branch_RZ<0x01, "beqz", SETEQ>;
+def BNEZ: Branch_RZ<0x05, "bnez", SETNE>;
+def BGEZ: Branch_RZ<0x0D, "bgez", SETGE>;
+def BLTZ: Branch_RZ<0x09, "bltz", SETLT>;
 
 // Unconditional jumps
 let isBranch = 1, isTerminator = 1, isBarrier = 1 in 
@@ -715,7 +716,7 @@ let mayLoad = 1 in
   class LoadF_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
      // ComplexPattern addrOp, Operand memOp>: RRI8_Inst<0x02, (outs), (ins AR:$t, memOp:$addr),
       ComplexPattern addrOp,Operand memOp>: RRI8_Inst<0x03, (outs FPR:$t), (ins memOp:$addr), 
-                instrAsm#"\t\t$t, $addr", 
+                instrAsm#"\t$t, $addr", 
                 [(set FPR:$t, (opNode addrOp:$addr))]>
   {
     let r = oper;
@@ -729,7 +730,7 @@ let mayStore = 1 in
 {
   class StoreF_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
       ComplexPattern addrOp, Operand memOp>: RRI8_Inst<0x03, (outs), (ins FPR:$t, memOp:$addr),
-              instrAsm#"\t\t$t, $addr", 
+              instrAsm#"\t$t, $addr", 
               [(opNode FPR:$t, addrOp:$addr)]>
   {
     let r = oper;
@@ -745,19 +746,18 @@ let isCompare = 1 in
 {
   class FCompare <bits<4> oper2, bits<4> oper1, string instrAsm, 
       SDPatternOperator opNode, bit isComm = 0>:
-    RRR_Inst<0x00, oper1, oper2, (outs), (ins FPR:$s, FPR:$t),
-       instrAsm#"\tb0, $s, $t",
-       [(opNode FPR:$s, FPR:$t)]> 
+    RRR_Inst<0x00, oper1, oper2, (outs BR:$b), (ins FPR:$s, FPR:$t),
+       instrAsm#"\t$b, $s, $t",
+       [(set BR:$b, (opNode FPR:$s, FPR:$t))]> 
   {
     let isCommutable = isComm;
     let isReMaterializable = 0;
-	let Defs = [b0];
   }
 }
 
-def OEQ_S:  FCompare<0x02, 0x0b, "oeq.s", Xtensa_cmpeq, 1>;
-def OLT_S:  FCompare<0x06, 0x0b, "olt.s", Xtensa_cmplt, 1>;
-def OLE_S:  FCompare<0x04, 0x0b, "ole.s", Xtensa_cmple, 1>;
+def OEQ_S:  FCompare<0x02, 0x0b, "oeq.s", Xtensa_cmpoeq, 1>;
+def OLT_S:  FCompare<0x06, 0x0b, "olt.s", Xtensa_cmpolt, 1>;
+def OLE_S:  FCompare<0x04, 0x0b, "ole.s", Xtensa_cmpole, 1>;
 
 def UEQ_S:  FCompare<0x03, 0x0b, "ueq.s", Xtensa_cmpueq, 1>;
 def ULT_S:  FCompare<0x05, 0x0b, "ult.s", Xtensa_cmpult, 1>;
@@ -799,23 +799,12 @@ def MOV_S: RRR_Inst<0x00, 0x0A, 0x0f, (outs FPR:$r), (ins FPR:$s),
 // Boolean branch Instructions
 //===----------------------------------------------------------------------===//
 
-let isBranch = 1, isTerminator = 1, isBarrier = 1, Uses = [b0] in 
+let isBranch = 1, isTerminator = 1, isBarrier = 1 in 
 {
-  def BTs: CALL_Inst<0x06, (outs), (ins brtarget:$offset), "bt\tb0, $offset", 
-          [(Xtensa_brcc_t bb:$offset)]>;
+  def BTs: CALL_Inst<0x06, (outs), (ins BR:$b, brtarget:$offset), "bt\t$b, $offset", 
+          [(Xtensa_brcc_t BR:$b, bb:$offset)]>;
 
-  def BFs: CALL_Inst<0x06, (outs), (ins brtarget:$offset), "bf\tb0, $offset", 
-          [(Xtensa_brcc_f bb:$offset)]>;
+  def BFs: CALL_Inst<0x06, (outs), (ins BR:$b,  brtarget:$offset), "bf\t$b, $offset", 
+          [(Xtensa_brcc_f BR:$b, bb:$offset)]>;
 }
 
-def MOVF: RRR_Inst<0x00, 0x00, 0x04, (outs AR:$r), (ins AR:$s),
-     "movf\t$r, $s", [(set AR:$r, (Xtensa_movf AR:$s))]>
-{
-  let Uses = [b0];
-}
-
-def MOVT: RRR_Inst<0x00, 0x00, 0x04, (outs AR:$r), (ins AR:$s),
-     "movt\t$r, $s", [(set AR:$r, (Xtensa_movt AR:$s))]>
-{
-  let Uses = [b0];
-}
