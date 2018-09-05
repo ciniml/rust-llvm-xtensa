@@ -97,6 +97,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
 
   setOperationAction(ISD::Constant, MVT::i32, Custom);
   setOperationAction(ISD::Constant, MVT::i64, Expand /*Custom */);
+  setOperationAction(ISD::ConstantFP, MVT::f32, Custom);
 
   // Expand jump table branches as address arithmetic followed by an
   // indirect jump.
@@ -1248,6 +1249,23 @@ SDValue XtensaTargetLowering::lowerImmediate(SDValue Op,
   return Op;
 }
 
+SDValue XtensaTargetLowering::lowerImmediateFP(SDValue Op,
+                                             SelectionDAG &DAG) const {
+  const ConstantFPSDNode *CN = cast<ConstantFPSDNode>(Op);
+  SDLoc DL(CN);
+  APFloat apval = CN->getValueAPF();
+  int64_t value = FloatToBits(CN->getValueAPF().convertToFloat());
+ if (Op.getValueType() == MVT::f32) {
+    Type *Ty = Type::getInt32Ty(*DAG.getContext());
+    Constant *CV = ConstantInt::get(Ty, value);
+    SDValue CP = DAG.getConstantPool(CV, MVT::i32, 0, 0, false);
+    return DAG.getNode(ISD::BITCAST, DL, MVT::f32, CP);
+  } else if (Op.getValueType() == MVT::f64) {
+    // TODO long constants
+  }
+  return Op;
+}
+
 #include <iostream>
 
 SDValue XtensaTargetLowering::lowerGlobalAddress(SDValue Op,
@@ -1379,13 +1397,18 @@ SDValue XtensaTargetLowering::lowerBR_JT(SDValue Op, SelectionDAG &DAG) const {
   SDValue LD = DAG.getExtLoad(ISD::SEXTLOAD, DL, PTy, Chain, Addr,
                               MachinePointerInfo::getJumpTable(MF), MemVT);
   Addr = LD;
-  if (1 /* TLI.isJumpTableRelative() */) {
+
+/*
+  if (1 )
+  //if ( TLI.isJumpTableRelative() ) 
+  {
     // For PIC, the sequence is:
     // BRIND(load(Jumptable + index) + RelocBase)
     // RelocBase can be JumpTable, GOT or some sort of global base.
     Addr = DAG.getNode(ISD::ADD, DL, PTy, Addr,
                        getPICJumpTableRelocBase(Table, DAG));
   }
+*/
   return DAG.getNode(ISD::BRIND, DL, MVT::Other, LD.getValue(1), Addr);
 }
 
@@ -1513,6 +1536,8 @@ SDValue XtensaTargetLowering::LowerOperation(SDValue Op,
     return lowerBR_JT(Op, DAG);
   case ISD::Constant:
     return lowerImmediate(Op, DAG);
+  case ISD::ConstantFP:
+    return lowerImmediateFP(Op, DAG);
   case ISD::RETURNADDR:
     return lowerRETURNADDR(Op, DAG);
   case ISD::BR_CC:

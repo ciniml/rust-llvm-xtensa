@@ -178,6 +178,7 @@ private:
 
   SDValue lowerBR_JT(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerImmediate(SDValue Op, SelectionDAG &DAG) const;
+  SDValue lowerImmediateFP(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerBR_CC(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerSETCC(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const;
