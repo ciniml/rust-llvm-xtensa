@@ -15,6 +15,16 @@ def RetCC_Xtensa: CallingConv<[
   CCIfType<[i64], CCAssignToRegWithShadow<[a2, a3], [a4, a5]>>
 ]>;
 
+def RetCCW_Xtensa: CallingConv<[
+  CCIfType<[i1, i8, i16], CCPromoteToType<i32>>,
+  CCIfType<[f32], CCBitConvertToType<i32>>,
+
+  //First two return values go in a10, a11, a12, a13
+  CCIfType<[i32], CCAssignToReg<[a10, a11, a12, a13]>>,
+  CCIfType<[f32], CCAssignToReg<[a10, a11, a12, a13]>>,
+  CCIfType<[i64], CCAssignToRegWithShadow<[a10, a11], [a12, a13]>>
+]>;
+
 //===----------------------------------------------------------------------===//
 // Xtensa argument calling conventions
 //===----------------------------------------------------------------------===//
@@ -50,9 +60,11 @@ def CC_Xtensa_VAR : CallingConv<[
 // Callee-saved register lists.
 //===----------------------------------------------------------------------===//
 
-def CSR_Xtensa: CalleeSavedRegs<(add /* a0 , */ a12, a13, a14, a15)>;
+def CSR_Xtensa: CalleeSavedRegs<(add a0, a12, a13, a14, a15)>;
 
 // Win ABI Overflow Spill registers
 def CSRW_Xtensa: CalleeSavedRegs<(add a8, a9, a10, a11, a12, a13, a14, a15)>;
+// Win ABI Callee Save registers
+def CSRWS_Xtensa: CalleeSavedRegs<(add a0)>;
 
 

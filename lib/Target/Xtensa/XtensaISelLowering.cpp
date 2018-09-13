@@ -37,7 +37,7 @@ void XtensaTargetObjectFile::Initialize(MCContext &Ctx, const TargetMachine &TM)
 static bool isLongCall(const char *str) {
   std::string name(str);
   if (name.find("__") == 0 || name.find("str") == 0 || name.find("mem") == 0 ||
-      name == "malloc")
+      name == "malloc" || name == "calloc" || name == "free")
     return true;
   return false;
 }
@@ -127,8 +127,10 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   setOperationAction(ISD::MUL, MVT::i32, Legal);
   setOperationAction(ISD::MUL, MVT::i64, Expand);
   setOperationAction(ISD::MULHS, MVT::i32, Expand);
+  //setOperationAction(ISD::MULHS, MVT::i32, Legal);
   setOperationAction(ISD::MULHS, MVT::i64, Expand);
   setOperationAction(ISD::MULHU, MVT::i32, Expand);
+  //setOperationAction(ISD::MULHU, MVT::i32, Legal);
   setOperationAction(ISD::MULHU, MVT::i64, Expand);
   setOperationAction(ISD::SDIV, MVT::i32, Legal);
   setOperationAction(ISD::SDIV, MVT::i64, Expand);
@@ -737,8 +739,9 @@ SDValue XtensaTargetLowering::LowerFormalArguments(
     // Offset of the first variable argument from stack pointer.
     int VaArgOffset;
 
-    if (NumRegs == Idx)
-      VaArgOffset = alignTo(CCInfo.getNextStackOffset(), RegSize);
+    unsigned NextStackOffset = CCInfo.getNextStackOffset();
+    if (Subtarget.isWinABI() || NumRegs == Idx)
+      VaArgOffset = alignTo(NextStackOffset, RegSize);
     else
       VaArgOffset = -(int)(RegSize * (NumRegs - Idx));
 
@@ -816,6 +819,8 @@ XtensaTargetLowering::LowerCall(CallLoweringInfo &CLI,
   MachineFunction &MF = DAG.getMachineFunction();
   EVT PtrVT = getPointerTy(DAG.getDataLayout());
   const TargetFrameLowering *TFL = Subtarget.getFrameLowering();
+  MachineFrameInfo &MFI = MF.getFrameInfo();
+  const XtensaSubtarget &STI = MF.getSubtarget<XtensaSubtarget>();
 
   // Xtensa target does not yet support tail call optimization.
   isTailCall = false;
@@ -826,6 +831,7 @@ XtensaTargetLowering::LowerCall(CallLoweringInfo &CLI,
 
   CCAssignFn *CC = IsVarArg ? CC_Xtensa_VAR : CC_Xtensa;
   CCInfo.AnalyzeCallOperands(Outs, CC);
+
   //
   // Get a count of how many bytes are to be pushed on the stack.
   unsigned NumBytes = CCInfo.getNextStackOffset();
@@ -834,9 +840,9 @@ XtensaTargetLowering::LowerCall(CallLoweringInfo &CLI,
   unsigned NextStackOffset = alignTo(NumBytes, StackAlignment);
 
   // Mark the start of the call.
-  // Chain = DAG.getCALLSEQ_START(Chain, DAG.getConstant(NumBytes, DL, PtrVT,
-  // true), 0,
-  //                             DL);
+
+  // TODO
+  // if (!IsTailCall)
   Chain = DAG.getCALLSEQ_START(Chain, NextStackOffset, 0, DL);
 
   // Copy argument values to their designated locations.
@@ -957,6 +963,15 @@ XtensaTargetLowering::LowerCall(CallLoweringInfo &CLI,
   Ops.push_back(Chain);
   Ops.push_back(Callee);
 
+  // TODO  if (!IsTailCall)
+  {
+    // Add a register mask operand representing the call-preserved registers.
+    const TargetRegisterInfo *TRI = Subtarget.getRegisterInfo();
+    const uint32_t *Mask = TRI->getCallPreservedMask(MF, CallConv);
+    assert(Mask && "Missing call preserved mask for calling convention");
+    Ops.push_back(DAG.getRegisterMask(Mask));
+  }
+
   // Add argument registers to the end of the list so that they are
   // known live into the call.
   for (unsigned I = 0, E = RegsToPass.size(); I != E; ++I) {
@@ -983,7 +998,8 @@ XtensaTargetLowering::LowerCall(CallLoweringInfo &CLI,
   // Assign locations to each value returned by this call.
   SmallVector<CCValAssign, 16> RetLocs;
   CCState RetCCInfo(CallConv, IsVarArg, MF, RetLocs, *DAG.getContext());
-  RetCCInfo.AnalyzeCallResult(Ins, RetCC_Xtensa);
+  RetCCInfo.AnalyzeCallResult(Ins, Subtarget.isWinABI() ? RetCCW_Xtensa
+                                                        : RetCC_Xtensa);
 
   // Copy all of the result registers out of their specified physreg.
   for (unsigned I = 0, E = RetLocs.size(); I != E; ++I) {
@@ -991,8 +1007,8 @@ XtensaTargetLowering::LowerCall(CallLoweringInfo &CLI,
 
     // Copy the value out, gluing the copy to the end of the call sequence.
     unsigned Reg = VA.getLocReg();
-    if (Subtarget.isWinABI())
-      Reg = toCallerWindow(Reg);
+    //    if (Subtarget.isWinABI())
+    //      Reg = toCallerWindow(Reg);
     SDValue RetValue = DAG.getCopyFromReg(Chain, DL, Reg, VA.getLocVT(), Glue);
     Chain = RetValue.getValue(1);
     Glue = RetValue.getValue(2);

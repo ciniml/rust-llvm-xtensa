@@ -89,6 +89,7 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
 
   // First, compute final stack size.
   uint64_t StackSize = MFI.getStackSize();
+  uint64_t PrevStackSize = StackSize;
 
   if (STI.isWinABI()) {
     StackSize += 32;
@@ -109,10 +110,12 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
       const XtensaInstrInfo &TII = *static_cast<const XtensaInstrInfo *>(
           MBB.getParent()->getSubtarget().getInstrInfo());
       BuildMI(MBB, MBBI, dl, TII.get(Xtensa::ENTRY))
-          .addReg(TmpReg)
+          .addReg(SP)
           .addImm(MIN_FRAME_SIZE);
       TII.loadImmediate(MBB, MBBI, &TmpReg, StackSize - MIN_FRAME_SIZE);
-      BuildMI(MBB, MBBI, dl, TII.get(Xtensa::SUB), TmpReg).addReg(SP).addReg(TmpReg);
+      BuildMI(MBB, MBBI, dl, TII.get(Xtensa::SUB), TmpReg)
+          .addReg(SP)
+          .addReg(TmpReg);
       BuildMI(MBB, MBBI, dl, TII.get(Xtensa::MOVSP), SP).addReg(TmpReg);
     }
 
@@ -156,6 +159,17 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
             nullptr, MRI->getDwarfRegNum(Reg, 1), Offset));
         BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
             .addCFIIndex(CFIIndex);
+      }
+    }
+  }
+
+  if (StackSize != PrevStackSize) {
+    MFI.setStackSize(StackSize);
+	// Correct SPOffset for all non-fixed objects (locals)
+	// It's kind of low level trick
+    for (int i = 0; i < MFI.getObjectIndexEnd(); i++) {
+      if (!MFI.isDeadObjectIndex(i)) {
+        MFI.setObjectOffset(i, MFI.getObjectOffset(i) - StackSize + PrevStackSize);
       }
     }
   }
@@ -218,8 +232,7 @@ void XtensaFrameLowering::emitEpilogue(MachineFunction &MF,
 bool XtensaFrameLowering::spillCalleeSavedRegisters(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
     const std::vector<CalleeSavedInfo> &CSI,
-    const TargetRegisterInfo *TRI) const 
-{
+    const TargetRegisterInfo *TRI) const {
   MachineFunction *MF = MBB.getParent();
   const XtensaSubtarget &STI = MF->getSubtarget<XtensaSubtarget>();
   if (STI.isWinABI())
@@ -250,11 +263,8 @@ bool XtensaFrameLowering::spillCalleeSavedRegisters(
 }
 
 bool XtensaFrameLowering::restoreCalleeSavedRegisters(
-    MachineBasicBlock &MBB,
-	MachineBasicBlock::iterator MI,
-	std::vector<CalleeSavedInfo> &CSI,
-	const TargetRegisterInfo *TRI) const 
-{
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
+    std::vector<CalleeSavedInfo> &CSI, const TargetRegisterInfo *TRI) const {
   MachineFunction *MF = MBB.getParent();
   const XtensaSubtarget &STI = MF->getSubtarget<XtensaSubtarget>();
   if (STI.isWinABI())
@@ -305,8 +315,7 @@ void XtensaFrameLowering::determineCalleeSaves(MachineFunction &MF,
       MF.getSubtarget().getRegisterInfo());
   unsigned FP = RegInfo->getFrameRegister(MF);
 
-  if (STI.isWinABI()) 
-  {
+  if (STI.isWinABI()) {
     // It's some trick, 8 regsiters are marked as spilled,
     // but real spill is in ENTRY instruction in case of register bank overflow
     SavedRegs.resize(RegInfo->getNumRegs());

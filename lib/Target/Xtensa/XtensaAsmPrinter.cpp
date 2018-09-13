@@ -91,7 +91,7 @@ void XtensaAsmPrinter::EmitMachineConstantPoolValue(
     const char *Sym = XtensaSym->getSymbol();
 	// TODO it's a trick to distinguish static references and generated rodata references
 	// Some clear method required
-    if (strchr(Sym, '.'))
+    //if (strchr(Sym, '.'))
     {
       char buf[256];
       if (XtensaSym->isPrivateLinkage())
@@ -99,8 +99,9 @@ void XtensaAsmPrinter::EmitMachineConstantPoolValue(
       else
         sprintf(buf, "%s", Sym);
       MCSym = GetExternalSymbolSymbol(buf);
-    } else
-      MCSym = GetExternalSymbolSymbol(Sym);
+    } 
+//    else
+//      MCSym = GetExternalSymbolSymbol(Sym);
   }
 
   // Create an MCSymbol for the reference.

@@ -80,18 +80,16 @@ void XtensaInstrInfo::adjustStackPtr(unsigned SP, int64_t Amount,
 
 unsigned XtensaInstrInfo::GetInstSizeInBytes(MachineInstr *MI) const {
   switch (MI->getOpcode()) {
-  /* TODO
-  case  TargetOpcode::INLINEASM:
-  { // Inline Asm: Variable size.
+  case TargetOpcode::INLINEASM: { // Inline Asm: Variable size.
     const MachineFunction *MF = MI->getParent()->getParent();
     const char *AsmStr = MI->getOperand(0).getSymbolName();
     return getInlineAsmLength(AsmStr, *MF->getTarget().getMCAsmInfo());
   }
-  case Xtensa::CONSTPOOL_ENTRY:
+    // TODO
+    //  case Xtensa::CONSTPOOL_ENTRY:
     // If this machine instr is a constant pool entry, its size is recorded as
     // operand #2.
-    return MI->getOperand(2).getImm();
-   */
+    //    return MI->getOperand(2).getImm();
   default:
     return MI->getDesc().getSize();
   }

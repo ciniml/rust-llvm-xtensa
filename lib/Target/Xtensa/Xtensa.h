@@ -2,11 +2,13 @@
 #define LLVM_LIB_TARGET_XTENSA_XTENSA_H
 
 #include "MCTargetDesc/XtensaMCTargetDesc.h"
+#include "llvm/PassRegistry.h"
 #include "llvm/Support/CodeGen.h"
 
 namespace llvm 
 {
   class XtensaTargetMachine;
+  class Pass;
   class FunctionPass;
 
   namespace Xtensa 
@@ -39,6 +41,9 @@ namespace llvm
                                      CodeGenOpt::Level OptLevel);
   FunctionPass *createXtensaBranchSelectionPass();
   FunctionPass *createXtensaSizeReductionPass();
-} // end namespace llvm;
+
+  void initializeXtensaZOLPassPass(PassRegistry &Registry);
+  Pass *createXtensaZOLPass();
+  } // end namespace llvm;
 #endif /* LLVM_LIB_TARGET_XTENSA_XTENSA_H */
   

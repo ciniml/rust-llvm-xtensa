@@ -28,10 +28,12 @@ def ADD: ArithLogic_RRR<0x08, 0x00, "add", add, 1>;
 def SUB: ArithLogic_RRR<0x0C, 0x00, "sub", sub>;
 def AND: ArithLogic_RRR<0x01, 0x00, "and", and, 1>;
 def MULL: ArithLogic_RRR<0x08, 0x02, "mull", mul, 1>;
+def MULUH: ArithLogic_RRR<0x0A, 0x02, "muluh", mulhu, 1>;
+def MULSH: ArithLogic_RRR<0x0B, 0x02, "mulus", mulhs, 1>;
 def QUOS: ArithLogic_RRR<0x0D, 0x02, "quos", sdiv>;
 def QUOU: ArithLogic_RRR<0x0C, 0x02, "quou", udiv>;
-def REMS: ArithLogic_RRR<0x0F, 0x02, "quos", srem>;
-def REMU: ArithLogic_RRR<0x0E, 0x02, "quou", urem>;
+def REMS: ArithLogic_RRR<0x0F, 0x02, "rems", srem>;
+def REMU: ArithLogic_RRR<0x0E, 0x02, "remu", urem>;
 def OR: ArithLogic_RRR<0x02, 0x00, "or", or, 1>;
 def XOR: ArithLogic_RRR<0x03, 0x00, "xor", xor, 1>;
 
@@ -224,6 +226,7 @@ let mayLoad = 1 in
   {
     let r = oper;
   }
+
 }
 
 // TODO

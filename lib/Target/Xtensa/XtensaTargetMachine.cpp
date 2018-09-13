@@ -1,26 +1,29 @@
 #include "XtensaTargetMachine.h"
 #include "XtensaTargetObjectFile.h"
 #include "llvm/CodeGen/Passes.h"
-#include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
+#include "llvm/CodeGen/TargetPassConfig.h"
 #include "llvm/Support/TargetRegistry.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
 using namespace llvm;
 
-extern "C" void LLVMInitializeXtensaTarget() 
-{
+extern "C" void LLVMInitializeXtensaTarget() {
   // Register the target.
   RegisterTargetMachine<XtensaTargetMachine> A(TheXtensaTarget);
+
+  PassRegistry &PR = *PassRegistry::getPassRegistry();
+  initializeXtensaZOLPassPass(PR);
 }
 
 static std::string computeDataLayout(const Triple &TT, StringRef CPU,
                                      const TargetOptions &Options,
-                                     bool isLittle) 
-{
+                                     bool isLittle) {
   std::string Ret = "e-m:e-p:32:32-i1:8:32-i8:8:32-i16:16:32-i64:32"
-    "-f64:32-a:0:32-n32";
+                    "-f64:32-a:0:32-n32";
   //       "e-m:e-p:32:32:32-i1:8:16-i8:8:16-i16:16-i32:32-"
-  //       "f32:32-f64:64-f80:128-f128:128-n32";  
+  //       "f32:32-f64:64-f80:128-f128:128-n32";
 
   return Ret;
 }
@@ -38,20 +41,18 @@ static CodeModel::Model getEffectiveCodeModel(Optional<CodeModel::Model> CM) {
   return CodeModel::Small;
 }
 
-
 XtensaTargetMachine::XtensaTargetMachine(const Target &T, const Triple &TT,
-                                       StringRef CPU, StringRef FS,
-                                       const TargetOptions &Options,
-                                     Optional<Reloc::Model> RM,
-                                     Optional<CodeModel::Model> CM,
-                                     CodeGenOpt::Level OL, bool JIT,
-                                     bool isLittle)
+                                         StringRef CPU, StringRef FS,
+                                         const TargetOptions &Options,
+                                         Optional<Reloc::Model> RM,
+                                         Optional<CodeModel::Model> CM,
+                                         CodeGenOpt::Level OL, bool JIT,
+                                         bool isLittle)
     : LLVMTargetMachine(T, computeDataLayout(TT, CPU, Options, isLittle), TT,
                         CPU, FS, Options, getEffectiveRelocModel(JIT, RM),
                         getEffectiveCodeModel(CM), OL),
-    TLOF(make_unique<XtensaTargetObjectFile>()),
-      Subtarget(TT, CPU, FS, *this) 
-{
+      TLOF(make_unique<XtensaTargetObjectFile>()),
+      Subtarget(TT, CPU, FS, *this) {
   initAsmInfo();
 }
 
@@ -63,14 +64,12 @@ XtensaTargetMachine::XtensaTargetMachine(const Target &T, const Triple &TT,
                                          CodeGenOpt::Level OL, bool JIT)
     : XtensaTargetMachine(T, TT, CPU, FS, Options, RM, CM, OL, JIT, false) {}
 
-
 const XtensaSubtarget *
-XtensaTargetMachine::getSubtargetImpl(const Function &F) const 
-{
+XtensaTargetMachine::getSubtargetImpl(const Function &F) const {
   /* TODO Multiple subtargets
   Attribute CPUAttr = F.getFnAttribute("target-cpu");
   Attribute FSAttr = F.getFnAttribute("target-features");
- 
+
   std::string CPU = !CPUAttr.hasAttribute(Attribute::None)
                         ? CPUAttr.getValueAsString().str()
                         : TargetCPU;
@@ -91,38 +90,47 @@ XtensaTargetMachine::getSubtargetImpl(const Function &F) const
   return &Subtarget;
 }
 
-namespace 
-{
+namespace {
 /// Xtensa Code Generator Pass Configuration Options.
-class XtensaPassConfig : public TargetPassConfig 
-{
+class XtensaPassConfig : public TargetPassConfig {
 public:
   XtensaPassConfig(XtensaTargetMachine &TM, PassManagerBase &PM)
-    : TargetPassConfig(TM, PM) {}
+      : TargetPassConfig(TM, PM) {}
 
-  XtensaTargetMachine &getXtensaTargetMachine() const 
-  {
+  XtensaTargetMachine &getXtensaTargetMachine() const {
     return getTM<XtensaTargetMachine>();
   }
 
+  void addIRPasses() override;
   bool addInstSelector() override;
   void addPreEmitPass() override;
 };
 } // end anonymous namespace
 
-bool XtensaPassConfig::addInstSelector() 
-{
+bool XtensaPassConfig::addInstSelector() {
   addPass(createXtensaISelDag(getXtensaTargetMachine(), getOptLevel()));
   return false;
 }
 
-void XtensaPassConfig::addPreEmitPass()
-{
+void XtensaPassConfig::addIRPasses() { 
+//	addPass(createXtensaZOLPass); 
+}
+
+void XtensaPassConfig::addPreEmitPass() {
   addPass(createXtensaBranchSelectionPass());
   addPass(createXtensaSizeReductionPass());
 }
 
-TargetPassConfig *XtensaTargetMachine::createPassConfig(PassManagerBase &PM) 
-{
+TargetPassConfig *XtensaTargetMachine::createPassConfig(PassManagerBase &PM) {
   return new XtensaPassConfig(*this, PM);
+}
+
+void XtensaTargetMachine::adjustPassManager(PassManagerBuilder &PMB) {
+  /*  
+  PMB.addExtension(
+      PassManagerBuilder::EP_LoopOptimizerEnd,
+      [&](const PassManagerBuilder &, legacy::PassManagerBase &PM) {
+        PM.add(createXtensaZOLPass());
+      });
+  */
 }

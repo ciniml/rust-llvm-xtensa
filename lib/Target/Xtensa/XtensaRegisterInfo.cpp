@@ -46,6 +46,7 @@ BitVector XtensaRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector Reserved(getNumRegs());
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
 
+  Reserved.set(Xtensa::a0);
   if (TFI->hasFP(MF)) {
     // fp is the frame pointer.  Reserve all aliases.
     Reserved.set(Xtensa::a15);
