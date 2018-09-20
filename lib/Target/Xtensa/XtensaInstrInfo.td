@@ -231,13 +231,18 @@ let mayLoad = 1 in
 
 // TODO
 // Xtensa missed L8I load operation
-/*
 let usesCustomInserter = 1 in
-def L8I: Pseudo<(outs AR:$t), (ins addr_ish1:$addr),
-               "!L8I $t, $addr",
-                [(set AR:$t, (sextloadi8 addr:$addr))]>;
-*/
-def L8I: Load_RRI8<0x09, "l8ui", sextloadi8, addr_ish1, mem8>;
+def L8I_P: Pseudo<(outs AR:$t), (ins mem8:$addr),
+               "!L8I_P $t, $addr",
+                [(set AR:$t, (sextloadi8 
+				addr_ish1:$addr))]>;
+
+def SEXT: RRR_Inst<0x00, 0x00, 0x04, (outs AR:$r), (ins AR:$s, seimm4:$imm),
+     "sext\t$r, $s, $imm",
+     []>
+{
+  let t = !add(imm, -7);
+}
 
 def L8UI: Load_RRI8<0x09, "l8ui", zextloadi8, addr_ish1, mem8>;
 def L16SI: Load_RRI8<0x09, "l16si", sextloadi16, addr_ish2, mem16>;
@@ -769,9 +774,12 @@ def UN_S:   FCompare<0x01, 0x0b, "un.s",  Xtensa_cmpuo, 1>;
 
 let usesCustomInserter = 1 in
 {
-  def SELECT_FP: Pseudo<(outs AR:$dst), (ins FPR:$lhs, FPR:$rhs, AR:$t, AR:$f, i32imm:$cond),
-                                    "!select_fp $dst, $lhs, $rhs, $t, $f, $cond",
+  def SELECT_CC_FP_INT: Pseudo<(outs AR:$dst), (ins FPR:$lhs, FPR:$rhs, AR:$t, AR:$f, i32imm:$cond),
+                                    "!select_cc_fp_int $dst, $lhs, $rhs, $t, $f, $cond",
                                     [(set AR:$dst, (Xtensa_select_cc_fp FPR:$lhs, FPR:$rhs, AR:$t, AR:$f, imm:$cond))]>;
+  def SELECT_CC_FP_FP: Pseudo<(outs FPR:$dst), (ins FPR:$lhs, FPR:$rhs, FPR:$t, FPR:$f, i32imm:$cond),
+                                    "!select_cc_fp_fp $dst, $lhs, $rhs, $t, $f, $cond",
+                                    [(set FPR:$dst, (Xtensa_select_cc_fp FPR:$lhs, FPR:$rhs, FPR:$t, FPR:$f, imm:$cond))]>;
 }
 
 def MADD_S: RRR_Inst<0x00, 0x0A, 0x04, (outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$t),

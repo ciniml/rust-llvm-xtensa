@@ -1887,7 +1887,8 @@ XtensaTargetLowering::emitSelectCC(MachineInstr &MI,
   BB->addSuccessor(copy0MBB);
   BB->addSuccessor(sinkMBB);
 
-  if (MI.getOpcode() == Xtensa::SELECT_FP) {
+  if ((MI.getOpcode() == Xtensa::SELECT_CC_FP_FP) || 
+  (MI.getOpcode() == Xtensa::SELECT_CC_FP_INT)){
     int BrKind = 0;
     int CmpKind = 0;
     MachineFunction *MF = BB->getParent();
@@ -1971,7 +1972,8 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
     return MBB;
   }
 
-  case Xtensa::SELECT_FP:
+  case Xtensa::SELECT_CC_FP_FP:
+  case Xtensa::SELECT_CC_FP_INT:
   case Xtensa::SELECT:
     return emitSelectCC(MI, MBB);
     //    case Xtensa::FSELECT_CC_F:
@@ -2007,6 +2009,20 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
 
     BuildMI(*MBB, MI, DL, TII.get(Xtensa::SSR)).addReg(SA.getReg());
     BuildMI(*MBB, MI, DL, TII.get(Xtensa::SRL), R.getReg()).addReg(T.getReg());
+    MI.eraseFromParent();
+    return MBB;
+  }
+
+  case Xtensa::L8I_P: {
+    MachineOperand &R = MI.getOperand(0);
+    MachineOperand &Op1 = MI.getOperand(1);
+    MachineOperand &Op2 = MI.getOperand(2);
+
+    const TargetRegisterClass *RC = getRegClassFor(MVT::i32);
+    unsigned r_new = MRI.createVirtualRegister(RC);
+
+    BuildMI(*MBB, MI, DL, TII.get(Xtensa::L8UI), r_new).add(Op1).add(Op2);
+    BuildMI(*MBB, MI, DL, TII.get(Xtensa::SEXT), R.getReg()).addReg(r_new).addImm(7);
     MI.eraseFromParent();
     return MBB;
   }

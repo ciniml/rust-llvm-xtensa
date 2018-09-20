@@ -103,6 +103,10 @@ def b4constu: Immediate<i32,
 
 def imm32 : ImmLeaf<i32, [{}]>, Operand<i32>;
 
+// seimm4 predicate - Immediate in the range [7,22] for sign extend
+def Seimm4_AsmOperand: ImmAsmOperand<"seimm4">;
+def seimm4: Immediate<i32, [{ return Imm >= 7 && Imm <= 22; }], "Seimm4_AsmOperand">; 
+
 //===----------------------------------------------------------------------===//
 // Memory address operands
 //===----------------------------------------------------------------------===//

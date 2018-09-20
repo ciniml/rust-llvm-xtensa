@@ -226,6 +226,8 @@ public:
     return false;
   }
 
+  bool isseimm4() const { return isImm(7, 22); }
+
   /// getStartLoc - Gets location of the first token of this operand
   SMLoc getStartLoc() const override { return StartLoc; }
   /// getEndLoc - Gets location of the last token of this operand
