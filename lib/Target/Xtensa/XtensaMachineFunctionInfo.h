@@ -5,12 +5,10 @@
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/Target/TargetMachine.h"
 
-namespace llvm 
-{
+namespace llvm {
 
-class XtensaFunctionInfo : public MachineFunctionInfo 
-{
-  MachineFunction& MF;
+class XtensaFunctionInfo : public MachineFunctionInfo {
+  MachineFunction &MF;
 
   unsigned SavedGPRFrameSize;
   unsigned LowSavedGPR;
@@ -18,18 +16,20 @@ class XtensaFunctionInfo : public MachineFunctionInfo
   unsigned VarArgsFirstGPR;
   unsigned VarArgsFirstFPR;
   unsigned VarArgsFrameIndex;
+  unsigned VarArgsSaveSize;
+  int      VarArgsStackOffset;
   unsigned RegSaveFrameIndex;
   bool ManipulatesSP;
 
   bool HasByvalArg;
 
   unsigned IncomingArgSize;
-  
+
 public:
   explicit XtensaFunctionInfo(MachineFunction &MF)
-    : MF(MF), SavedGPRFrameSize(0), LowSavedGPR(0), HighSavedGPR(0), VarArgsFirstGPR(0),
-      VarArgsFirstFPR(0), VarArgsFrameIndex(0), RegSaveFrameIndex(0),
-      ManipulatesSP(false) {
+      : MF(MF), SavedGPRFrameSize(0), LowSavedGPR(0), HighSavedGPR(0),
+        VarArgsFirstGPR(0), VarArgsFirstFPR(0), VarArgsFrameIndex(0),
+        RegSaveFrameIndex(0), ManipulatesSP(false) {
     MF.setAlignment(2);
   }
 
@@ -53,6 +53,12 @@ public:
   unsigned getVarArgsFirstGPR() const { return VarArgsFirstGPR; }
   void setVarArgsFirstGPR(unsigned GPR) { VarArgsFirstGPR = GPR; }
 
+  int getVarArgsStackOffset() const { return VarArgsStackOffset; }
+  void setVarArgsStackOffset(int Offset) { VarArgsStackOffset = Offset; }
+
+  unsigned getVarArgsSaveSize() const { return VarArgsSaveSize; }
+  void setVarArgsSaveSize(int Size) { VarArgsSaveSize = Size; }
+
   // Likewise FPRs.
   unsigned getVarArgsFirstFPR() const { return VarArgsFirstFPR; }
   void setVarArgsFirstFPR(unsigned FPR) { VarArgsFirstFPR = FPR; }
@@ -72,18 +78,15 @@ public:
   void setManipulatesSP(bool MSP) { ManipulatesSP = MSP; }
 
   bool hasByvalArg() const { return HasByvalArg; }
-  void setFormalArgInfo(unsigned Size, bool HasByval) 
-  {
+  void setFormalArgInfo(unsigned Size, bool HasByval) {
     IncomingArgSize = Size;
     HasByvalArg = HasByval;
   }
 
   unsigned getIncomingArgSize() const { return IncomingArgSize; };
   void setIncomingArgSize(unsigned Size) { IncomingArgSize = Size; };
-
 };
 
-} // end llvm namespace
+} // namespace llvm
 
 #endif /* LLVM_LIB_TARGET_XTENSA_XTENSAMACHINEFUNCTIONINFO_H */
-

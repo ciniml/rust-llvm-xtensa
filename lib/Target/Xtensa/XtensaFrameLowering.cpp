@@ -59,8 +59,8 @@ XtensaFrameLowering::XtensaFrameLowering()
 // if frame pointer elimination is disabled.
 bool XtensaFrameLowering::hasFP(const MachineFunction &MF) const {
   const MachineFrameInfo &MFI = MF.getFrameInfo();
-  return MF.getTarget().Options.DisableFramePointerElim(MF) ||
-         MFI.hasVarSizedObjects() || MFI.isFrameAddressTaken();
+  return MF.getTarget().Options.DisableFramePointerElim(MF) 
+	  /*  || MFI.hasVarSizedObjects() || MFI.isFrameAddressTaken() */;
 }
 
 /* minimum frame = reg save area (4 words) plus static chain (1 word)
@@ -167,9 +167,20 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
     MFI.setStackSize(StackSize);
 	// Correct SPOffset for all non-fixed objects (locals)
 	// It's kind of low level trick
+    /*
     for (int i = 0; i < MFI.getObjectIndexEnd(); i++) {
       if (!MFI.isDeadObjectIndex(i)) {
         MFI.setObjectOffset(i, MFI.getObjectOffset(i) - StackSize + PrevStackSize);
+      }
+    }
+	*/
+    
+	for (int i = MFI.getObjectIndexBegin(); i < MFI.getObjectIndexEnd(); i++) {
+      if (!MFI.isDeadObjectIndex(i)) {
+        int64_t SPOffset = MFI.getObjectOffset(i);
+//        errs() << "SPOffset = " + SPOffset << "\n";
+        if (SPOffset < 0)
+          MFI.setObjectOffset(i, SPOffset - StackSize + PrevStackSize);
       }
     }
   }

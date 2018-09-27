@@ -485,7 +485,12 @@ void XtensaInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   else if (STI.hasF() && Xtensa::FPRRegClass.contains(SrcReg) &&
            Xtensa::FPRRegClass.contains(DestReg))
     Opcode = Xtensa::MOV_S;
-
+  else if (STI.hasF() && Xtensa::FPRRegClass.contains(SrcReg) &&
+           Xtensa::ARRegClass.contains(DestReg))
+    Opcode = Xtensa::RFR;
+  else if (STI.hasF() && Xtensa::ARRegClass.contains(SrcReg) &&
+           Xtensa::FPRRegClass.contains(DestReg))
+    Opcode = Xtensa::WFR;
   /*
   else if (Xtensa::ARRegClass.contains(SrcReg) &&
            Xtensa::SARLRegClass.contains(DestReg))

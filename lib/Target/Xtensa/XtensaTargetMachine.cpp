@@ -20,8 +20,8 @@ extern "C" void LLVMInitializeXtensaTarget() {
 static std::string computeDataLayout(const Triple &TT, StringRef CPU,
                                      const TargetOptions &Options,
                                      bool isLittle) {
-  std::string Ret = "e-m:e-p:32:32-i1:8:32-i8:8:32-i16:16:32-i64:32"
-                    "-f64:32-a:0:32-n32";
+  std::string Ret = "e-m:e-p:32:32-i1:8:32-i8:8:32-i16:16:32-i64:64"
+                    "-f64:64-a:0:32-n32";
   //       "e-m:e-p:32:32:32-i1:8:16-i8:8:16-i16:16-i32:32-"
   //       "f32:32-f64:64-f80:128-f128:128-n32";
 
