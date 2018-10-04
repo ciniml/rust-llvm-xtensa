@@ -76,32 +76,42 @@ def NEG: RRR_Inst<0x00, 0x00, 0x06, (outs AR:$r), (ins AR:$t),
 		 [(set AR:$r, (ineg AR:$t))]>;
 
 // Shift instructions
-def SLL: RRR_Inst<0x00, 0x01, 0x0A, (outs AR:$r), (ins AR:$s),
-     "sll\t$r, $s",
-     []>;
-
-def SRA: RRR_Inst<0x00, 0x01, 0x0B, (outs AR:$r), (ins AR:$t),
-     "sra\t$r, $t",
-     []>;
-
-def SRL: RRR_Inst<0x00, 0x01, 0x09, (outs AR:$r), (ins AR:$t),
-     "srl\t$r, $t",
-     []>;
-
-def SSL: RRR_Inst<0x00, 0x00, 0x04, (outs), (ins AR:$s),
-     "ssl\t$s", []>
+let Uses = [sar] in
 {
-  let r = 0x01;
-  let t = 0x00;
-}
+  def SLL: RRR_Inst<0x00, 0x01, 0x0A, (outs AR:$r), (ins AR:$s),
+       "sll\t$r, $s",
+       [(set AR:$r, (Xtensa_shl AR:$s))]>;
 
-def SSR: RRR_Inst<0x00, 0x00, 0x04, (outs), (ins AR:$s),
-     "ssr\t$s", []>
+  def SRA: RRR_Inst<0x00, 0x01, 0x0B, (outs AR:$r), (ins AR:$t),
+       "sra\t$r, $t",
+       [(set AR:$r, (Xtensa_sra AR:$t))]>;
+
+  def SRC: RRR_Inst<0x00, 0x01, 0x08, (outs AR:$r), (ins AR:$s, AR:$t),
+       "src\t$r, $s, $t",
+       [(set AR:$r, (Xtensa_src AR:$s, AR:$t))]>;
+
+  def SRL: RRR_Inst<0x00, 0x01, 0x09, (outs AR:$r), (ins AR:$t),
+       "srl\t$r, $t",
+       [(set AR:$r, (Xtensa_srl AR:$t))]>;
+}
+let Defs = [sar] in
 {
-  let r = 0x00;
-  let t = 0x00;
-}
+  def SSL: RRR_Inst<0x00, 0x00, 0x04, (outs), (ins AR:$s),
+       "ssl\t$s",
+	   [(Xtensa_ssl AR:$s)]>
+  {
+    let r = 0x01;
+    let t = 0x00;
+  }
 
+  def SSR: RRR_Inst<0x00, 0x00, 0x04, (outs), (ins AR:$s),
+       "ssr\t$s", 
+	   [(Xtensa_ssr AR:$s)]>
+  {
+    let r = 0x00;
+    let t = 0x00;
+  }
+}
 // Shift Pseudo instructions:
 // SSL/SSR + Shift combination
 let usesCustomInserter = 1 in

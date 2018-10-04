@@ -22,6 +22,12 @@ def SDT_XtensaMoveCond           : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>, SDTC
 def SDT_XtensaMADD               : SDTypeProfile<1, 3, [SDTCisSameAs<0, 1>, SDTCisSameAs<0, 2>, SDTCisSameAs<0, 3>, SDTCisVT<0, f32>]>;
 def SDT_XtensaMOVS               : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>, SDTCisVT<0, f32>]>;
 
+def SDT_XtensaSHL                : SDTypeProfile<1, 1, [SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
+def SDT_XtensaSRA                : SDTypeProfile<1, 1, [SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
+def SDT_XtensaSRL                : SDTypeProfile<1, 1, [SDTCisVT<0, i32>, SDTCisVT<1, i32>]>;
+def SDT_XtensaSRC                : SDTypeProfile<1, 2, [SDTCisVT<0, i32>, SDTCisVT<1, i32>, SDTCisVT<2, i32>]>;
+def SDT_XtensaSSL                : SDTypeProfile<0, 1, [SDTCisVT<0, i32>]>;
+def SDT_XtensaSSR                : SDTypeProfile<0, 1, [SDTCisVT<0, i32>]>;
 //===----------------------------------------------------------------------===//
 // Node definitions
 //===----------------------------------------------------------------------===//
@@ -78,3 +84,16 @@ def Xtensa_msub: SDNode<"XtensaISD::MSUB", SDT_XtensaMADD,
                             [SDNPInGlue]>;
 def Xtensa_movs: SDNode<"XtensaISD::MOVS", SDT_XtensaMOVS,
                             [SDNPInGlue]>;
+
+def Xtensa_shl: SDNode<"XtensaISD::SHL", SDT_XtensaSHL,
+                            [SDNPInGlue]>;
+def Xtensa_sra: SDNode<"XtensaISD::SRA", SDT_XtensaSRA,
+                            [SDNPInGlue]>;
+def Xtensa_srl: SDNode<"XtensaISD::SRL", SDT_XtensaSRL,
+                            [SDNPInGlue]>;
+def Xtensa_src: SDNode<"XtensaISD::SRC", SDT_XtensaSRC,
+                            [SDNPInGlue]>;
+def Xtensa_ssl: SDNode<"XtensaISD::SSL", SDT_XtensaSSL,
+                            [SDNPOutGlue]>;
+def Xtensa_ssr: SDNode<"XtensaISD::SSR", SDT_XtensaSSR,
+                            [SDNPOutGlue]>;

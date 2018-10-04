@@ -158,7 +158,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
 
   // Xtensa doesn't support s[hl,rl,ra]_parts
   // TODO
-  setOperationAction(ISD::SHL_PARTS, MVT::i32, Expand);
+  setOperationAction(ISD::SHL_PARTS, MVT::i32, Custom);
   setOperationAction(ISD::SRA_PARTS, MVT::i32, Expand);
   setOperationAction(ISD::SRL_PARTS, MVT::i32, Expand);
 
@@ -1796,6 +1796,27 @@ SDValue XtensaTargetLowering::lowerFRAMEADDR(SDValue Op,
   return FrameAddr;
 }
 
+SDValue  XtensaTargetLowering::lowerShiftLeftParts(SDValue Op, SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  MVT VT = MVT::i32;
+
+  SDValue Lo = Op.getOperand(0), Hi = Op.getOperand(1);
+  SDValue Shamt = Op.getOperand(2);
+
+  SDValue SetShiftLeft = DAG.getNode(XtensaISD::SSL, DL, MVT::Glue, Shamt);
+  SDValue ShiftLeftHi = DAG.getNode(XtensaISD::SRC, DL, VT, Hi, Lo, SetShiftLeft);
+  SDValue SetShiftLeft1 = DAG.getNode(XtensaISD::SSL, DL, MVT::Glue, Shamt);
+  SDValue ShiftLeftLo = DAG.getNode(XtensaISD::SHL, DL, VT, Lo, SetShiftLeft1);
+  SDValue Cond = DAG.getNode(ISD::AND, DL, MVT::i32, Shamt,
+                             DAG.getConstant(VT.getSizeInBits(), DL, MVT::i32));
+  Lo = DAG.getNode(ISD::SELECT, DL, VT, Cond, DAG.getConstant(0, DL, VT),
+                   ShiftLeftLo);
+  Hi = DAG.getNode(ISD::SELECT, DL, VT, Cond, ShiftLeftLo, ShiftLeftHi);
+
+  SDValue Ops[2] = {Lo, Hi};
+  return DAG.getMergeValues(Ops, DL);
+}
+
 SDValue XtensaTargetLowering::LowerOperation(SDValue Op,
                                              SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
@@ -1837,6 +1858,8 @@ SDValue XtensaTargetLowering::LowerOperation(SDValue Op,
     return lowerSTACKRESTORE(Op, DAG);
   case ISD::FRAMEADDR:
     return lowerFRAMEADDR(Op, DAG);
+  case ISD::SHL_PARTS:
+    return lowerShiftLeftParts(Op, DAG);
   default:
     // printf("--- Node %s\n", Op.getNode()->getOperationName().c_str());
     llvm_unreachable("Unexpected node to lower");
@@ -1871,6 +1894,12 @@ const char *XtensaTargetLowering::getTargetNodeName(unsigned Opcode) const {
     OPCODE(MADD);
     OPCODE(MSUB);
     OPCODE(MOVS);
+    OPCODE(SHL);
+    OPCODE(SRA);
+    OPCODE(SRL);
+    OPCODE(SRC);
+    OPCODE(SSL);
+    OPCODE(SSR);
   }
   return NULL;
 #undef OPCODE

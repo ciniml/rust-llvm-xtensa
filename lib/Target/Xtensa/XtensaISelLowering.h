@@ -77,6 +77,14 @@ enum {
   // FP move
   MOVS,
 
+  //shift
+  SHL,
+  SRA,
+  SRL,
+  SRC,
+  SSL,
+  SSR,
+
   FENCE
 };
 }
@@ -196,6 +204,7 @@ private:
   SDValue lowerSTACKRESTORE(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerFRAMEADDR(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerATOMIC_FENCE(SDValue Op, SelectionDAG &DAG) const;
+  SDValue lowerShiftLeftParts(SDValue Op, SelectionDAG &DAG) const;
 
   SDValue getTargetNode(SDValue Op, SelectionDAG &DAG, unsigned Flag) const;
 //  SDValue getAddrNonPIC(SDValue Op, SelectionDAG &DAG) const;
