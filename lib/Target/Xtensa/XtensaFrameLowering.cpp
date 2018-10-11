@@ -60,7 +60,7 @@ XtensaFrameLowering::XtensaFrameLowering()
 bool XtensaFrameLowering::hasFP(const MachineFunction &MF) const {
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   return MF.getTarget().Options.DisableFramePointerElim(MF) 
-	  /*  || MFI.hasVarSizedObjects() || MFI.isFrameAddressTaken() */;
+	  || MFI.hasVarSizedObjects() /* || MFI.isFrameAddressTaken() */;
 }
 
 /* minimum frame = reg save area (4 words) plus static chain (1 word)

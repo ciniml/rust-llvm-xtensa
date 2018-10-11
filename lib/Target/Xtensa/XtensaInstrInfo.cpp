@@ -127,7 +127,10 @@ bool XtensaInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     if (!ThisTarget->isMBB())
       return true;
 
-    if (ThisCond[0].getImm() == Xtensa::CCMASK_ANY) {
+    //if (ThisCond[0].getImm() == Xtensa::JX)
+    //  return true;
+
+    if (ThisCond[0].getImm() == Xtensa::J) {
       // Handle unconditional branches.
       if (!AllowModify) {
         TBB = ThisTarget->getMBB();
@@ -162,8 +165,9 @@ bool XtensaInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
       FBB = TBB;
       TBB = ThisTarget->getMBB();
       Cond.push_back(MachineOperand::CreateImm(ThisCond[0].getImm()));
+
       // push remaining operands
-      for (unsigned int i = 0; i < (I->getNumExplicitOperands()); i++)
+      for (unsigned int i = 0; i < (I->getNumExplicitOperands()-1); i++)
         Cond.push_back(I->getOperand(i));
 
       continue;
@@ -244,86 +248,38 @@ unsigned XtensaInstrInfo::InsertConstBranchAtInst(MachineBasicBlock &MBB,
   assert(Cond.size() <= 4 &&
          "Xtensa branch conditions have less than four components!");
 
-  if (Cond.empty() || Cond[0].getImm() == Xtensa::CCMASK_ANY) {
+  if (Cond.empty() || (Cond[0].getImm() == Xtensa::J)) {
     // Unconditional branch
     BuildMI(MBB, I, DL, get(Xtensa::J)).addImm(offset);
     return 1;
   }
 
-  // Conditional branch.
   unsigned Count = 0;
-  unsigned CC = Cond[0].getImm();
-  switch (CC) {
-  case Xtensa::CCMASK_CMP_EQ:
-    BuildMI(MBB, I, DL, get(Xtensa::BEQ))
+  unsigned BR_C = Cond[0].getImm();
+  unsigned BRANCH_TYPE = BranchType(BR_C);
+  switch (BRANCH_TYPE) {
+  case Xtensa::CBRANCH_RR:
+    BuildMI(MBB, I, DL, get(BR_C))
         .addImm(offset)
-        .addReg(Cond[2].getReg())
-        .addReg(Cond[3].getReg());
+        .addReg(Cond[1].getReg())
+        .addReg(Cond[2].getReg());
     break;
-  case Xtensa::CCMASK_CMP_NE:
-    BuildMI(MBB, I, DL, get(Xtensa::BNE))
+  case Xtensa::CBRANCH_RI:
+    BuildMI(MBB, I, DL, get(BR_C))
         .addImm(offset)
-        .addReg(Cond[2].getReg())
-        .addReg(Cond[3].getReg());
+        .addReg(Cond[1].getReg())
+        .addImm(Cond[2].getImm());
     break;
-  case Xtensa::CCMASK_CMP_LT:
-    BuildMI(MBB, I, DL, get(Xtensa::BLT))
+  case Xtensa::CBRANCH_RZ:
+    BuildMI(MBB, I, DL, get(BR_C))
         .addImm(offset)
-        .addReg(Cond[2].getReg())
-        .addReg(Cond[3].getReg());
+        .addReg(Cond[1].getReg());
     break;
-  case (Xtensa::CCMASK_CMP_LT | Xtensa::CCMASK_CMP_UO):
-    BuildMI(MBB, I, DL, get(Xtensa::BLTU))
-        .addImm(offset)
-        .addReg(Cond[2].getReg())
-        .addReg(Cond[3].getReg());
+  case Xtensa::CBRANCH_B:
+    BuildMI(MBB, I, DL, get(BR_C)).addImm(offset).addReg(Cond[1].getReg());
     break;
-  case Xtensa::CCMASK_CMP_GE:
-    BuildMI(MBB, I, DL, get(Xtensa::BGE))
-        .addImm(offset)
-        .addReg(Cond[2].getReg())
-        .addReg(Cond[3].getReg());
-    break;
-  case (Xtensa::CCMASK_CMP_GE | Xtensa::CCMASK_CMP_UO):
-    BuildMI(MBB, I, DL, get(Xtensa::BGEU))
-        .addImm(offset)
-        .addReg(Cond[2].getReg())
-        .addReg(Cond[3].getReg());
-    break;
-  // synth
-  case Xtensa::CCMASK_CMP_GT:
-    BuildMI(MBB, I, DL, get(Xtensa::BGT))
-        .addImm(offset)
-        .addReg(Cond[2].getReg())
-        .addReg(Cond[3].getReg());
-    break;
-  case Xtensa::CCMASK_CMP_LE:
-    BuildMI(MBB, I, DL, get(Xtensa::BLE))
-        .addImm(offset)
-        .addReg(Cond[2].getReg())
-        .addReg(Cond[3].getReg());
-    break;
-  case Xtensa::CCMASK_CMP_GT | Xtensa::CCMASK_CMP_UO:
-    BuildMI(MBB, I, DL, get(Xtensa::BGTU))
-        .addImm(offset)
-        .addReg(Cond[2].getReg())
-        .addReg(Cond[3].getReg());
-    break;
-  case Xtensa::CCMASK_CMP_LE | Xtensa::CCMASK_CMP_UO:
-    BuildMI(MBB, I, DL, get(Xtensa::BLEU))
-        .addImm(offset)
-        .addReg(Cond[2].getReg())
-        .addReg(Cond[3].getReg());
-    break;
-  case Xtensa::CCMASK_BT:
-    BuildMI(MBB, I, DL, get(Xtensa::BTs)).addImm(offset);
-    break;
-  case Xtensa::CCMASK_BF:
-    BuildMI(MBB, I, DL, get(Xtensa::BFs)).addImm(offset);
-    break;
-
   default:
-    llvm_unreachable("Invalid branch condition code!");
+    llvm_unreachable("Invalid branch type!");
   }
   ++Count;
   return Count;
@@ -339,137 +295,42 @@ unsigned XtensaInstrInfo::InsertBranchAtInst(MachineBasicBlock &MBB,
   assert(Cond.size() <= 4 &&
          "Xtensa branch conditions have less than four components!");
 
-  if (Cond.empty() || Cond[0].getImm() == Xtensa::CCMASK_ANY) {
+  if (Cond.empty() || (Cond[0].getImm() == Xtensa::J)) {
     // Unconditional branch
     BuildMI(MBB, I, DL, get(Xtensa::J)).addMBB(TBB);
     return 1;
   }
 
-  // Conditional branch.
   unsigned Count = 0;
-  unsigned CC = Cond[0].getImm();
-  int CodeReg = 0;
-  int CodeImm = 0;
-  int CodeZ = 0;
-  bool NonImmed = false;
-  bool BBranch = false;
-  switch (CC) {
-  case Xtensa::CCMASK_CMP_EQ:
-    CodeReg = Xtensa::BEQ;
-    CodeImm = Xtensa::BEQI;
-    CodeZ = Xtensa::BEQZ;
+  unsigned BR_C = Cond[0].getImm();
+  unsigned BRANCH_TYPE = BranchType(BR_C);
+  switch (BRANCH_TYPE) {
+  case Xtensa::CBRANCH_RR:
+    BuildMI(MBB, I, DL, get(BR_C))
+        .addReg(Cond[1].getReg())
+        .addReg(Cond[2].getReg())
+        .addMBB(TBB);
     break;
-  case Xtensa::CCMASK_CMP_NE:
-    CodeReg = Xtensa::BNE;
-    CodeImm = Xtensa::BNEI;
-    CodeZ = Xtensa::BNEZ;
+  case Xtensa::CBRANCH_RI:
+    BuildMI(MBB, I, DL, get(BR_C))
+        .addReg(Cond[1].getReg())
+        .addImm(Cond[2].getImm())
+        .addMBB(TBB);
     break;
-  case Xtensa::CCMASK_CMP_LT:
-    CodeReg = Xtensa::BLT;
-    CodeImm = Xtensa::BLTI;
-    CodeZ = Xtensa::BLTZ;
+  case Xtensa::CBRANCH_RZ:
+    BuildMI(MBB, I, DL, get(BR_C))
+        .addReg(Cond[1].getReg())
+        .addMBB(TBB);
     break;
-  case (Xtensa::CCMASK_CMP_LT | Xtensa::CCMASK_CMP_UO):
-    CodeReg = Xtensa::BLTU;
-    CodeImm = Xtensa::BLTUI;
-    break;
-  case Xtensa::CCMASK_CMP_GE:
-    CodeReg = Xtensa::BGE;
-    CodeImm = Xtensa::BGEI;
-    CodeZ = Xtensa::BGEZ;
-    break;
-  case (Xtensa::CCMASK_CMP_GE | Xtensa::CCMASK_CMP_UO):
-    CodeReg = Xtensa::BGE;
-    CodeImm = Xtensa::BGEI;
-    CodeZ = Xtensa::BGEZ;
-    break;
-  // synth
-  case Xtensa::CCMASK_CMP_GT:
-    CodeReg = Xtensa::BGT;
-    CodeImm = 0;
-    break;
-  case Xtensa::CCMASK_CMP_LE:
-    CodeReg = Xtensa::BLE;
-    CodeImm = 0;
-    break;
-  case Xtensa::CCMASK_CMP_GT | Xtensa::CCMASK_CMP_UO:
-    CodeReg = Xtensa::BGTU;
-    CodeImm = 0;
-    break;
-  case Xtensa::CCMASK_CMP_LE | Xtensa::CCMASK_CMP_UO:
-    CodeReg = Xtensa::BLEU;
-    CodeImm = 0;
-    break;
-  case Xtensa::CCMASK_BF:
-    CodeReg = Xtensa::BFs;
-    CodeImm = 0;
-    BBranch = true;
-    break;
-  case Xtensa::CCMASK_BT:
-    CodeReg = Xtensa::BTs;
-    CodeImm = 0;
-    BBranch = true;
+  case Xtensa::CBRANCH_B:
+    BuildMI(MBB, I, DL, get(BR_C))
+		.addReg(Cond[1].getReg())
+        .addMBB(TBB);
     break;
   default:
-    llvm_unreachable("Invalid branch condition code!");
+    llvm_unreachable("Invalid branch type!");
   }
-
-  if (Cond.size() == 4) {
-    if (Cond[3].isReg())
-      BuildMI(MBB, I, DL, get(CodeReg))
-          .addMBB(TBB)
-          .addReg(Cond[2].getReg())
-          .addReg(Cond[3].getReg());
-    else if (Cond[3].isImm()) {
-      if (CodeImm)
-        BuildMI(MBB, I, DL, get(CodeImm))
-            .addMBB(TBB)
-            .addReg(Cond[2].getReg())
-            .addImm(Cond[3].getImm());
-      else {
-        // There is no such branch instruction with immediate operand
-        // Copy immediate to temporary register and use Bxx reg1, reg2
-        // instruction instead
-        MachineFunction *MF = MBB.getParent();
-        MachineRegisterInfo &MRI = MF->getRegInfo();
-        unsigned TempReg = MRI.createVirtualRegister(&Xtensa::ARRegClass);
-        loadImmediate(MBB, I, &TempReg, Cond[3].getImm());
-        BuildMI(MBB, I, DL, get(CodeReg))
-            .addMBB(TBB)
-            .addReg(Cond[2].getReg())
-            .addReg(TempReg);
-      }
-    } else
-      llvm_unreachable("Invalid branch insert operand!");
-  } else {
-    if (BBranch)
-      BuildMI(MBB, I, DL, get(CodeReg)).addMBB(TBB);
-    else if (CodeZ != 0)
-      BuildMI(MBB, I, DL, get(CodeZ)).addMBB(TBB).addReg(Cond[2].getReg());
-    else {
-      if (CodeImm)
-        BuildMI(MBB, I, DL, get(CodeImm))
-            .addMBB(TBB)
-            .addReg(Cond[2].getReg())
-            .addImm(0);
-      else {
-        // There is no such branch instruction with immediate operand
-        // Copy immediate to temporary register and use Bxx reg1, reg2
-        // instruction instead
-        MachineFunction *MF = MBB.getParent();
-        MachineRegisterInfo &MRI = MF->getRegInfo();
-        unsigned TempReg = MRI.createVirtualRegister(&Xtensa::ARRegClass);
-        loadImmediate(MBB, I, &TempReg, 0);
-        BuildMI(MBB, I, DL, get(CodeReg))
-            .addMBB(TBB)
-            .addReg(Cond[2].getReg())
-            .addReg(TempReg);
-      }
-    }
-  }
-
   ++Count;
-
   return Count;
 }
 
@@ -479,6 +340,7 @@ void XtensaInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                   unsigned SrcReg, bool KillSrc) const {
 
   unsigned Opcode;
+
   // when we are copying a phys reg we want the bits for fp
   if (Xtensa::ARRegClass.contains(DestReg, SrcReg))
     Opcode = Xtensa::MOV_N;
@@ -611,116 +473,176 @@ bool XtensaInstrInfo::reverseBranchCondition(
   assert(Cond.size() <= 4 && "Invalid branch condition!");
   // Only need to switch the condition code, not the registers
   switch (Cond[0].getImm()) {
-  case Xtensa::CCMASK_CMP_EQ:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_NE);
+  case Xtensa::BEQ:
+    Cond[0].setImm(Xtensa::BNE);
     return false;
-  case Xtensa::CCMASK_CMP_NE:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_EQ);
+  case Xtensa::BNE:
+    Cond[0].setImm(Xtensa::BEQ);
     return false;
-  case Xtensa::CCMASK_CMP_LT:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_GE);
+  case Xtensa::BLT:
+    Cond[0].setImm(Xtensa::BGE);
     return false;
-  case Xtensa::CCMASK_CMP_GE:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_LT);
+  case Xtensa::BGE:
+    Cond[0].setImm(Xtensa::BLT);
     return false;
-  case Xtensa::CCMASK_CMP_LT | Xtensa::CCMASK_CMP_UO:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_GE | Xtensa::CCMASK_CMP_UO);
+  case Xtensa::BLTU:
+    Cond[0].setImm(Xtensa::BGEU);
     return false;
-  case Xtensa::CCMASK_CMP_GE | Xtensa::CCMASK_CMP_UO:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_LT | Xtensa::CCMASK_CMP_UO);
+  case Xtensa::BGEU:
+    Cond[0].setImm(Xtensa::BLTU);
     return false;
-  // synth
-  case Xtensa::CCMASK_CMP_GT:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_LE);
+
+  case Xtensa::BGT:
+    Cond[0].setImm(Xtensa::BLE);
     return false;
-  case Xtensa::CCMASK_CMP_LE:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_GT);
+  case Xtensa::BGTU:
+    Cond[0].setImm(Xtensa::BLEU);
+  return false;
+  case Xtensa::BLE:
+    Cond[0].setImm(Xtensa::BGT);
+  return false;
+  case Xtensa::BLEU:
+    Cond[0].setImm(Xtensa::BGTU);
+  return false;
+
+  case Xtensa::BEQI:
+    Cond[0].setImm(Xtensa::BNEI);
     return false;
-  case Xtensa::CCMASK_CMP_GT | Xtensa::CCMASK_CMP_UO:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_LE | Xtensa::CCMASK_CMP_UO);
+  case Xtensa::BNEI:
+    Cond[0].setImm(Xtensa::BEQI);
     return false;
-  case Xtensa::CCMASK_CMP_LE | Xtensa::CCMASK_CMP_UO:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_GT | Xtensa::CCMASK_CMP_UO);
+  case Xtensa::BGEI:
+    Cond[0].setImm(Xtensa::BLTI);
     return false;
-  case Xtensa::CCMASK_BT:
-    Cond[0].setImm(Xtensa::CCMASK_BF);
+  case Xtensa::BLTI:
+    Cond[0].setImm(Xtensa::BGEI);
     return false;
-  case Xtensa::CCMASK_BF:
-    Cond[0].setImm(Xtensa::CCMASK_BT);
+  case Xtensa::BGEUI:
+    Cond[0].setImm(Xtensa::BLTUI);
+    return false;
+  case Xtensa::BLTUI:
+    Cond[0].setImm(Xtensa::BGEUI);
+    return false;
+
+  case Xtensa::BEQZ:
+    Cond[0].setImm(Xtensa::BNEZ);
+    return false;
+  case Xtensa::BNEZ:
+    Cond[0].setImm(Xtensa::BEQZ);
+    return false;
+  case Xtensa::BLTZ:
+    Cond[0].setImm(Xtensa::BGEZ);
+    return false;
+  case Xtensa::BGEZ:
+    Cond[0].setImm(Xtensa::BLTZ);
+    return false;
+
+
+  case Xtensa::BFs:
+    Cond[0].setImm(Xtensa::BTs);
+    return false;
+  case Xtensa::BTs:
+    Cond[0].setImm(Xtensa::BFs);
     return false;
   default:
     llvm_unreachable("Invalid branch condition!");
   }
 }
 
+unsigned XtensaInstrInfo::BranchType(unsigned OpCode) const {
+  switch (OpCode) {
+  case Xtensa::J:
+  case Xtensa::JX:
+    return Xtensa::UBRANCH;
+  case Xtensa::BEQ:
+  case Xtensa::BNE:
+  case Xtensa::BLT:
+  case Xtensa::BLTU:
+  case Xtensa::BGE:
+  case Xtensa::BGEU:
+  case Xtensa::BGT:
+  case Xtensa::BGTU:
+  case Xtensa::BLE:
+  case Xtensa::BLEU:
+    return Xtensa::CBRANCH_RR;
+
+  case Xtensa::BEQI:
+  case Xtensa::BNEI:
+  case Xtensa::BLTI:
+  case Xtensa::BLTUI:
+  case Xtensa::BGEI:
+  case Xtensa::BGEUI:
+    return Xtensa::CBRANCH_RI;
+
+  case Xtensa::BEQZ:
+  case Xtensa::BNEZ:
+  case Xtensa::BLTZ:
+  case Xtensa::BGEZ:
+    return Xtensa::CBRANCH_RZ;
+
+  case Xtensa::BTs:
+  case Xtensa::BFs:
+    return Xtensa::CBRANCH_B;
+
+  default:
+    llvm_unreachable("Unknown branch opcode!");
+    return 0;
+  }
+}
+
 bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
                                SmallVectorImpl<MachineOperand> &Cond,
                                const MachineOperand *&Target) const {
-  switch (MI->getOpcode()) {
+  unsigned OpCode = MI->getOpcode();
+  switch (OpCode) {
   case Xtensa::J:
   case Xtensa::JX:
     //    case Xtensa::CALL0:
     //    case Xtensa::CALLX0:
-    Cond[0].setImm(Xtensa::CCMASK_ANY);
+    //Cond[0].setImm(Xtensa::UBRANCH);
+    Cond[0].setImm(OpCode);
     Target = &MI->getOperand(0);
     return true;
   case Xtensa::BEQ:
-  case Xtensa::BEQI:
-  case Xtensa::BEQZ:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_EQ);
-    Target = &MI->getOperand(0);
-    return true;
   case Xtensa::BNE:
-  case Xtensa::BNEI:
-  case Xtensa::BNEZ:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_NE);
-    Target = &MI->getOperand(0);
-    return true;
   case Xtensa::BLT:
-  case Xtensa::BLTI:
-  case Xtensa::BLTZ:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_LT);
-    Target = &MI->getOperand(0);
-    return true;
   case Xtensa::BLTU:
-  case Xtensa::BLTUI:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_LT | Xtensa::CCMASK_CMP_UO);
-    Target = &MI->getOperand(0);
-    return true;
   case Xtensa::BGE:
-  case Xtensa::BGEI:
-  case Xtensa::BGEZ:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_GE);
-    Target = &MI->getOperand(0);
-    return true;
   case Xtensa::BGEU:
-  case Xtensa::BGEUI:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_GE | Xtensa::CCMASK_CMP_UO);
-    Target = &MI->getOperand(0);
-    return true;
   case Xtensa::BGT:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_GT);
-    Target = &MI->getOperand(0);
-    return true;
   case Xtensa::BGTU:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_GT | Xtensa::CCMASK_CMP_UO);
-    Target = &MI->getOperand(0);
-    return true;
   case Xtensa::BLE:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_LE);
-    Target = &MI->getOperand(0);
-    return true;
   case Xtensa::BLEU:
-    Cond[0].setImm(Xtensa::CCMASK_CMP_LE | Xtensa::CCMASK_CMP_UO);
-    Target = &MI->getOperand(0);
+    //Cond[0].setImm(Xtensa::CBRANCH_RR);
+    Cond[0].setImm(OpCode);
+    Target = &MI->getOperand(2);
     return true;
+
+  case Xtensa::BEQI:
+  case Xtensa::BNEI:
+  case Xtensa::BLTI:
+  case Xtensa::BLTUI:
+  case Xtensa::BGEI:
+  case Xtensa::BGEUI:
+    //Cond[0].setImm(Xtensa::CBRANCH_RI);
+    Cond[0].setImm(OpCode);
+    Target = &MI->getOperand(2);
+    return true;
+
+  case Xtensa::BEQZ:
+  case Xtensa::BNEZ:
+  case Xtensa::BLTZ:
+  case Xtensa::BGEZ:
+    //Cond[0].setImm(Xtensa::CBRANCH_RZ);
+    Cond[0].setImm(OpCode);
+    Target = &MI->getOperand(1);
+    return true;
+
   case Xtensa::BTs:
-    Cond[0].setImm(Xtensa::CCMASK_BT);
-    Target = &MI->getOperand(0);
-    return true;
   case Xtensa::BFs:
-    Cond[0].setImm(Xtensa::CCMASK_BF);
-    Target = &MI->getOperand(0);
+    //Cond[0].setImm(Xtensa::CBRANCH_B);
+    Cond[0].setImm(OpCode);
+    Target = &MI->getOperand(1);
     return true;
 
   default:
@@ -793,3 +715,4 @@ void XtensaInstrInfo::loadImmediate(MachineBasicBlock &MBB,
       //    BuildMI(MBB, MBBI, DL, get(Xtensa::LI), *Reg).addImm(Value);
     }
 }
+

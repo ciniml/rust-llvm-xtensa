@@ -205,7 +205,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   setOperationAction(ISD::JumpTable, PtrVT, Custom);
 
   // Expand stack allocations
-  setOperationAction(ISD::DYNAMIC_STACKALLOC, PtrVT, Expand);
+  setOperationAction(ISD::DYNAMIC_STACKALLOC, PtrVT, Custom /* Expand */);
 
   // Use custom expanders so that we can force the function to use
   // a frame pointer.
@@ -1796,6 +1796,31 @@ SDValue XtensaTargetLowering::lowerFRAMEADDR(SDValue Op,
   return FrameAddr;
 }
 
+SDValue XtensaTargetLowering::lowerDYNAMIC_STACKALLOC(SDValue Op, SelectionDAG &DAG) const {
+  SDValue Chain = Op.getOperand(0); // Legalize the chain.
+  SDValue Size = Op.getOperand(1);  // Legalize the size.
+  unsigned Align = cast<ConstantSDNode>(Op.getOperand(2))->getZExtValue();
+  unsigned StackAlign = Subtarget.getFrameLowering()->getStackAlignment();
+  EVT VT = Size->getValueType(0);
+  SDLoc DL(Op);
+
+  // Round up Size to 32
+  SDValue Size1 = DAG.getNode(ISD::ADD, DL, VT, Size, DAG.getConstant(31, DL, MVT::i32));
+  SDValue SizeRoundUp =
+      DAG.getNode(ISD::AND, DL, VT, Size1, DAG.getConstant(~31, DL, MVT::i32));
+
+  unsigned SPReg = Xtensa::sp;
+  SDValue SP = DAG.getCopyFromReg(Chain, DL, SPReg, VT);
+  SDValue NewSP = DAG.getNode(ISD::SUB, DL, VT, SP, SizeRoundUp);    // Value
+  Chain = DAG.getCopyToReg(SP.getValue(1), DL, SPReg, NewSP); // Output chain
+
+  SDValue NewVal = DAG.getCopyFromReg(Chain, DL, SPReg, MVT::i32);
+  Chain = NewVal.getValue(1);
+
+  SDValue Ops[2] = { NewVal, Chain };
+  return DAG.getMergeValues(Ops, DL);
+}
+
 SDValue  XtensaTargetLowering::lowerShiftLeftParts(SDValue Op, SelectionDAG &DAG) const {
   SDLoc DL(Op);
   MVT VT = MVT::i32;
@@ -1858,6 +1883,8 @@ SDValue XtensaTargetLowering::LowerOperation(SDValue Op,
     return lowerSTACKRESTORE(Op, DAG);
   case ISD::FRAMEADDR:
     return lowerFRAMEADDR(Op, DAG);
+  case ISD::DYNAMIC_STACKALLOC:
+    return lowerDYNAMIC_STACKALLOC(Op, DAG);
   case ISD::SHL_PARTS:
     return lowerShiftLeftParts(Op, DAG);
   default:

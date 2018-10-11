@@ -106,6 +106,8 @@ public:
   void loadImmediate(MachineBasicBlock &MBB,
                      MachineBasicBlock::iterator MBBI,
                      unsigned *Reg, int64_t Value) const;
+
+  unsigned BranchType(unsigned BR_CODE) const;
 };
 } // end namespace llvm
 
