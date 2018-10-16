@@ -159,8 +159,8 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   // Xtensa doesn't support s[hl,rl,ra]_parts
   // TODO
   setOperationAction(ISD::SHL_PARTS, MVT::i32, Custom);
-  setOperationAction(ISD::SRA_PARTS, MVT::i32, Expand);
-  setOperationAction(ISD::SRL_PARTS, MVT::i32, Expand);
+  setOperationAction(ISD::SRA_PARTS, MVT::i32, Custom);
+  setOperationAction(ISD::SRL_PARTS, MVT::i32, Custom);
 
   // Bit Manipulation
   setOperationAction(ISD::CTPOP, MVT::i32, Expand);
@@ -1528,7 +1528,9 @@ SDValue XtensaTargetLowering::lowerBR_JT(SDValue Op, SelectionDAG &DAG) const {
                          getPICJumpTableRelocBase(Table, DAG));
     }
   */
-  return DAG.getNode(ISD::BRIND, DL, MVT::Other, LD.getValue(1), Addr);
+//  return DAG.getNode(ISD::BRIND, DL, MVT::Other, LD.getValue(1), Addr);
+  return DAG.getNode(XtensaISD::BR_JT, DL, MVT::Other, LD.getValue(1), Addr,
+                     TargetJT);
 }
 
 SDValue XtensaTargetLowering::lowerJumpTable(JumpTableSDNode *JT,
@@ -1842,6 +1844,61 @@ SDValue  XtensaTargetLowering::lowerShiftLeftParts(SDValue Op, SelectionDAG &DAG
   return DAG.getMergeValues(Ops, DL);
 }
 
+SDValue  XtensaTargetLowering::lowerShiftRightParts(SDValue Op,
+                                                         SelectionDAG &DAG,
+                                                         bool IsSRA) const {
+  SDLoc DL(Op);
+  SDValue Lo = Op.getOperand(0), Hi = Op.getOperand(1);
+  SDValue Shamt = Op.getOperand(2);
+  MVT VT = MVT::i32;
+
+  if (IsSRA)
+  {
+    SDValue SetShiftRight1 = DAG.getNode(XtensaISD::SSR, DL, MVT::Glue, Shamt);
+    SDValue ShiftRightLo1 =
+        DAG.getNode(XtensaISD::SRC, DL, VT, Hi, Lo, SetShiftRight1);
+    
+	SDValue SetShiftRight2 = DAG.getNode(XtensaISD::SSR, DL, MVT::Glue, Shamt);
+    SDValue ShiftRightHi1 =  DAG.getNode(XtensaISD::SRA, DL, VT, Hi, SetShiftRight2);
+
+	SDValue SetShiftRight3 = DAG.getNode(XtensaISD::SSR, DL, MVT::Glue, Shamt);
+    SDValue ShiftRightLo2 =
+        DAG.getNode(XtensaISD::SRA, DL, VT, Hi, SetShiftRight3);
+
+	SDValue SetShiftRight4 = DAG.getNode(XtensaISD::SSR, DL, MVT::Glue, Shamt);
+    SDValue ShiftRightHi2 = DAG.getNode(ISD::SRA, DL, VT, Hi,
+                                            DAG.getConstant(31, DL, VT));
+
+    SDValue Cond =
+        DAG.getNode(ISD::AND, DL, MVT::i32, Shamt,
+                    DAG.getConstant(VT.getSizeInBits(), DL, MVT::i32));
+    Hi = DAG.getNode(ISD::SELECT, DL, VT, Cond, ShiftRightHi2, ShiftRightHi1);
+    Lo = DAG.getNode(ISD::SELECT, DL, VT, Cond, ShiftRightLo2, ShiftRightLo1);
+  } else {
+    SDValue SetShiftRight1 = DAG.getNode(XtensaISD::SSR, DL, MVT::Glue, Shamt);
+    SDValue ShiftRightLo1 =
+        DAG.getNode(XtensaISD::SRC, DL, VT, Hi, Lo, SetShiftRight1);
+
+    SDValue SetShiftRight2 = DAG.getNode(XtensaISD::SSR, DL, MVT::Glue, Shamt);
+    SDValue ShiftRightHi1 =
+        DAG.getNode(XtensaISD::SRL, DL, VT, Hi, SetShiftRight2);
+
+    SDValue SetShiftRight3 = DAG.getNode(XtensaISD::SSR, DL, MVT::Glue, Shamt);
+    SDValue ShiftRightLo2 =
+        DAG.getNode(XtensaISD::SRL, DL, VT, Hi, SetShiftRight3);
+
+    SDValue Cond =
+        DAG.getNode(ISD::AND, DL, MVT::i32, Shamt,
+                    DAG.getConstant(VT.getSizeInBits(), DL, MVT::i32));
+    Hi = DAG.getNode(ISD::SELECT, DL, VT, Cond, DAG.getConstant(0, DL, VT),
+                     ShiftRightHi1);
+    Lo = DAG.getNode(ISD::SELECT, DL, VT, Cond, ShiftRightLo2, ShiftRightLo1);
+  }
+
+  SDValue Ops[2] = {Lo, Hi};
+  return DAG.getMergeValues(Ops, DL);
+}
+
 SDValue XtensaTargetLowering::LowerOperation(SDValue Op,
                                              SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
@@ -1887,6 +1944,10 @@ SDValue XtensaTargetLowering::LowerOperation(SDValue Op,
     return lowerDYNAMIC_STACKALLOC(Op, DAG);
   case ISD::SHL_PARTS:
     return lowerShiftLeftParts(Op, DAG);
+  case ISD::SRA_PARTS:
+    return lowerShiftRightParts(Op, DAG, true);
+  case ISD::SRL_PARTS:
+    return lowerShiftRightParts(Op, DAG, false);
   default:
     // printf("--- Node %s\n", Op.getNode()->getOperationName().c_str());
     llvm_unreachable("Unexpected node to lower");
@@ -1909,6 +1970,7 @@ const char *XtensaTargetLowering::getTargetNodeName(unsigned Opcode) const {
     OPCODE(SELECT_CC_FP);
     OPCODE(BR_CC_T);
     OPCODE(BR_CC_F);
+    OPCODE(BR_JT);
     OPCODE(CMPUO);
     OPCODE(CMPUEQ);
     OPCODE(CMPULE);

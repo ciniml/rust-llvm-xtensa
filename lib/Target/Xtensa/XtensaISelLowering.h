@@ -59,6 +59,8 @@ enum {
   BR_CC_T,
   BR_CC_F,
 
+  BR_JT,
+
   // Floating point unordered compare conditions
   CMPUEQ,
   CMPULE,
@@ -206,6 +208,7 @@ private:
   SDValue lowerATOMIC_FENCE(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerDYNAMIC_STACKALLOC(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerShiftLeftParts(SDValue Op, SelectionDAG &DAG) const;
+  SDValue lowerShiftRightParts(SDValue Op, SelectionDAG &DAG, bool IsSRA) const;
 
   SDValue getTargetNode(SDValue Op, SelectionDAG &DAG, unsigned Flag) const;
 //  SDValue getAddrNonPIC(SDValue Op, SelectionDAG &DAG) const;

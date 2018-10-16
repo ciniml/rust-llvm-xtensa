@@ -447,6 +447,12 @@ def : Pat<(brcond AR:$s, bb:$target),
 def : Pat<(brcond (i32 1), bb:$target),
           (J bb:$target)>;
 
+let isBranch = 1, isTerminator = 1, isBarrier = 1 in 
+{
+  def BR_JT: Pseudo<(outs), (ins AR:$s, i32imm:$jt),
+                       "jx\t$s", [(Xtensa_brjt AR:$s, tjumptable:$jt)]>;
+}
+
 let isCall = 1,
    Defs = [sp] in 
 {
