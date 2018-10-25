@@ -38,11 +38,14 @@ void XtensaTargetObjectFile::Initialize(MCContext &Ctx, const TargetMachine &TM)
 // It's simplified version, production implimentation must
 // resolve a functions in ROM (usually glibc functions)
 static bool isLongCall(const char *str) {
+  return true;
+#if 0
   std::string name(str);
   if (name.find("__") == 0 || name.find("str") == 0 || name.find("mem") == 0 ||
       name == "malloc" || name == "calloc" || name == "free")
     return true;
   return false;
+#endif
 }
 
 // The calling conventions in XtensaCallingConv.td are described in terms of the
@@ -1048,7 +1051,7 @@ XtensaTargetLowering::LowerCall(CallLoweringInfo &CLI,
     name = GV->getName().str();
   }
 
-  if (isLongCall(name.c_str())) {
+  if ((!name.empty()) && isLongCall(name.c_str())) {
     // Create a constant pool entry for the callee address
     XtensaConstantPoolValue *CPV = XtensaConstantPoolSymbol::Create(
         *DAG.getContext(), name.c_str(), 0 /* XtensaCLabelIndex */, false);
