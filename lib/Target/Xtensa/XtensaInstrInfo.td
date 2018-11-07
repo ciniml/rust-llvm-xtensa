@@ -261,8 +261,8 @@ def L32I: Load_RRI8<0x02, "l32i", load, addr_ish4, mem32>;
 
 //extended loads
 def : Pat<(i32 (extloadi1  addr_ish1:$addr)), (L8UI addr_ish1:$addr)>;
-def : Pat<(i32 (extloadi8  addr_ish2:$addr)), (L8UI addr_ish2:$addr)>;
-def : Pat<(i32 (extloadi16 addr_ish4:$addr)), (L16UI addr_ish4:$addr)>;
+def : Pat<(i32 (extloadi8  addr_ish1:$addr)), (L8UI addr_ish1:$addr)>;
+def : Pat<(i32 (extloadi16 addr_ish2:$addr)), (L16UI addr_ish2:$addr)>;
 
 // Store instructions
 let mayStore = 1 in
@@ -423,6 +423,29 @@ def BEQZ: Branch_RZ<0x01, "beqz", SETEQ>;
 def BNEZ: Branch_RZ<0x05, "bnez", SETNE>;
 def BGEZ: Branch_RZ<0x0D, "bgez", SETGE>;
 def BLTZ: Branch_RZ<0x09, "bltz", SETLT>;
+
+
+def : Pat<(brcond (i32 (seteq AR:$s, AR:$t)), bb:$target),
+          (BEQ AR:$s, AR:$t, bb:$target)>;
+def : Pat<(brcond (i32 (setne AR:$s, AR:$t)), bb:$target),
+          (BNE AR:$s, AR:$t, bb:$target)>;
+def : Pat<(brcond (i32 (setge AR:$s, AR:$t)), bb:$target),
+          (BGE AR:$s, AR:$t, bb:$target)>;
+def : Pat<(brcond (i32 (setle AR:$s, AR:$t)), bb:$target),
+          (BLT AR:$s, AR:$t, bb:$target)>;
+def : Pat<(brcond (i32 (setuge AR:$s, AR:$t)), bb:$target),
+          (BGEU AR:$s, AR:$t, bb:$target)>;
+def : Pat<(brcond (i32 (setult AR:$s, AR:$t)), bb:$target),
+          (BLTU AR:$s, AR:$t, bb:$target)>;
+def : Pat<(brcond (i32 (setgt AR:$s, AR:$t)), bb:$target),
+          (BGT AR:$s, AR:$t, bb:$target)>;
+def : Pat<(brcond (i32 (setugt AR:$s, AR:$t)), bb:$target),
+          (BGTU AR:$s, AR:$t, bb:$target)>;
+def : Pat<(brcond (i32 (setle AR:$s, AR:$t)), bb:$target),
+          (BLE AR:$s, AR:$t, bb:$target)>;
+def : Pat<(brcond (i32 (setule AR:$s, AR:$t)), bb:$target),
+          (BLEU AR:$s, AR:$t, bb:$target)>;
+
 
 // Unconditional jumps
 let isBranch = 1, isTerminator = 1, isBarrier = 1 in 
