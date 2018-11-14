@@ -1286,6 +1286,9 @@ SDValue XtensaTargetLowering::lowerSELECT_CC(SDValue Op,
   if (LHS.getValueType() == MVT::f32)
     return DAG.getNode(XtensaISD::SELECT_CC_FP, DL, TrueV.getValueType(), LHS,
                        RHS, TrueV, FalseV, TargetCC);
+  else if (TrueV.getValueType() == MVT::f32)
+    return DAG.getNode(XtensaISD::SELECT_CC_FP, DL, TrueV.getValueType(), LHS,
+                       RHS, TrueV, FalseV, TargetCC);
   else
     return DAG.getNode(XtensaISD::SELECT_CC, DL, Ty, LHS, RHS, TrueV, FalseV,
                        TargetCC);
@@ -1323,6 +1326,9 @@ SDValue XtensaTargetLowering::lowerSETCC(SDValue Op, SelectionDAG &DAG) const {
   SDVTList VTs = DAG.getVTList(Op.getValueType(), MVT::Glue);
 
   if (LHS.getValueType() == MVT::f32)
+    return DAG.getNode(XtensaISD::SELECT_CC_FP, DL, TrueV.getValueType(), LHS,
+                       RHS, TrueV, FalseV, TargetCC);
+  else if (TrueV.getValueType() == MVT::f32)
     return DAG.getNode(XtensaISD::SELECT_CC_FP, DL, TrueV.getValueType(), LHS,
                        RHS, TrueV, FalseV, TargetCC);
   else
@@ -2349,6 +2355,7 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
 
   case Xtensa::SELECT_CC_FP_FP:
   case Xtensa::SELECT_CC_FP_INT:
+  case Xtensa::SELECT_CC_INT_FP:
   case Xtensa::SELECT:
     return emitSelectCC(MI, MBB);
     //    case Xtensa::FSELECT_CC_F:

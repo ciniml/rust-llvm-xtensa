@@ -54,6 +54,7 @@ BitVector XtensaRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
 
   // sp is the stack pointer.  Reserve all aliases.
   Reserved.set(Xtensa::sp);
+  Reserved.set(Xtensa::a7);
   return Reserved;
 }
 

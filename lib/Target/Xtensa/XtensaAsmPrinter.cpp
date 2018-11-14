@@ -23,12 +23,14 @@ void XtensaAsmPrinter::EmitInstruction(const MachineInstr *MI) {
 /// used to print out constants which have been "spilled to memory" by
 /// the code generator.
 void XtensaAsmPrinter::EmitConstantPool() {
+  const Function &F = MF->getFunction();
   const MachineConstantPool *MCP = MF->getConstantPool();
   const std::vector<MachineConstantPoolEntry> &CP = MCP->getConstants();
   if (CP.empty())
     return;
 
-  OutStreamer->EmitRawText("\t.text");
+ // OutStreamer->EmitRawText("\t.text");
+  OutStreamer->SwitchSection(getObjFileLowering().SectionForGlobal(&F, TM));
   OutStreamer->EmitRawText("\t.literal_position");
   for (unsigned i = 0, e = CP.size(); i != e; ++i) {
     const MachineConstantPoolEntry &CPE = CP[i];

@@ -816,6 +816,9 @@ let usesCustomInserter = 1 in
   def SELECT_CC_FP_INT: Pseudo<(outs AR:$dst), (ins FPR:$lhs, FPR:$rhs, AR:$t, AR:$f, i32imm:$cond),
                                     "!select_cc_fp_int $dst, $lhs, $rhs, $t, $f, $cond",
                                     [(set AR:$dst, (Xtensa_select_cc_fp FPR:$lhs, FPR:$rhs, AR:$t, AR:$f, imm:$cond))]>;
+  def SELECT_CC_INT_FP: Pseudo<(outs FPR:$dst), (ins AR:$lhs, AR:$rhs, FPR:$t, FPR:$f, i32imm:$cond),
+                                    "!select_cc_int_fp $dst, $lhs, $rhs, $t, $f, $cond",
+                                    [(set FPR:$dst, (Xtensa_select_cc_fp AR:$lhs, AR:$rhs, FPR:$t, FPR:$f, imm:$cond))]>;
   def SELECT_CC_FP_FP: Pseudo<(outs FPR:$dst), (ins FPR:$lhs, FPR:$rhs, FPR:$t, FPR:$f, i32imm:$cond),
                                     "!select_cc_fp_fp $dst, $lhs, $rhs, $t, $f, $cond",
                                     [(set FPR:$dst, (Xtensa_select_cc_fp FPR:$lhs, FPR:$rhs, FPR:$t, FPR:$f, imm:$cond))]>;
