@@ -860,4 +860,23 @@ let isBranch = 1, isTerminator = 1, isBarrier = 1 in
   def BFs: CALL_Inst<0x06, (outs), (ins BR:$b,  brtarget:$offset), "bf\t$b, $offset", 
           [(Xtensa_brcc_f BR:$b, bb:$offset)]>;
 }
+//===----------------------------------------------------------------------===//
+// Atomic patterns
+//===----------------------------------------------------------------------===//
 
+def : Pat<(i32 (atomic_load_8  addr_ish1:$addr)), (L8UI addr_ish1:$addr)>;
+def : Pat<(i32 (atomic_load_16 addr_ish2:$addr)), (L16UI addr_ish2:$addr)>;
+def : Pat<(i32 (atomic_load_32 addr_ish4:$addr)), (L32I addr_ish4:$addr)>;
+
+def : Pat<(atomic_store_8  AR:$t, addr_ish1:$addr), (S8I AR:$t, addr_ish1:$addr)>;
+def : Pat<(atomic_store_16 AR:$t, addr_ish2:$addr), (S16I AR:$t, addr_ish2:$addr)>;
+def : Pat<(atomic_store_32 AR:$t, addr_ish4:$addr), (S32I AR:$t, addr_ish4:$addr)>;
+
+def MEMW:  RRR_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s, AR:$t),
+     "memw\t",
+     [(atomic_fence AR:$s, AR: $t)]>
+{
+  let r = 0x2;
+  let t = 0x0c;
+  let isBarrier = 1;
+} 

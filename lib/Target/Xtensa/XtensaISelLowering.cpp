@@ -125,8 +125,9 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
       setOperationAction(ISD::SDIVREM, VT, Expand);
       setOperationAction(ISD::UDIVREM, VT, Expand);
 
-      setOperationAction(ISD::ATOMIC_LOAD, VT, Expand);
-      setOperationAction(ISD::ATOMIC_STORE, VT, Expand);
+      //setOperationAction(ISD::ATOMIC_LOAD, VT, Expand);
+      //setOperationAction(ISD::ATOMIC_STORE, VT, Expand);
+      setOperationAction(ISD::ATOMIC_CMP_SWAP,  VT, Expand);
     }
   }
 
@@ -308,7 +309,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
 
   // to have the best chance and doing something good with fences custom lower
   // them
-  setOperationAction(ISD::ATOMIC_FENCE, MVT::Other, Custom);
+  //setOperationAction(ISD::ATOMIC_FENCE, MVT::Other, Custom);
 
   if (Subtarget.hasF()) {
     setCondCodeAction(ISD::SETOGT, MVT::f32, Expand);
@@ -1626,7 +1627,7 @@ SDValue XtensaTargetLowering::lowerVASTART(SDValue Op,
   //  } __va_list_tag[1];
 
   SDValue ArgAR =
-      DAG.getConstant(XtensaFI->getVarArgsFirstGPR() * 4, DL, MVT::i32);
+      DAG.getConstant(XtensaFI->getVarArgsFirstGPR() * 4 - 8, DL, MVT::i32);
   SDValue StackOffsetFI =
       DAG.getFrameIndex(XtensaFI->getVarArgsStackOffset(), PtrVT);
 
@@ -1653,7 +1654,7 @@ SDValue XtensaTargetLowering::lowerVASTART(SDValue Op,
   SDValue nextPtr = DAG.getNode(ISD::ADD, DL, PtrVT, Addr, ConstFrameOffset1);
 
   // Store second word : arguments given on registers  (__va_reg)
-  SDValue FRAdvance = DAG.getConstant(XtensaFI->getVarArgsFirstGPR() * 4, DL, PtrVT);    
+  SDValue FRAdvance = DAG.getConstant(XtensaFI->getVarArgsFirstGPR() * 4 - 8, DL, PtrVT);    
   SDValue FRDecr = DAG.getNode(ISD::SUB, DL, PtrVT, FR, FRAdvance);
   SDValue secondStore = DAG.getStore(firstStore, DL, FRDecr, nextPtr,
                                      MachinePointerInfo(SV, nextOffset));
@@ -1731,7 +1732,7 @@ SDValue XtensaTargetLowering::lowerVAARG(SDValue Op, SelectionDAG &DAG) const {
 
   // select overflow_area if index > NumArgRegs
   // int NumArgRegs = sizeof(XtensaArgRegs) / sizeof(MCPhysReg);
-  int LastArgIdx = 4 * 8; // 8 - index of
+  int LastArgIdx = 4*6;//6 - index of
                           // Xtensa::a7, last argument register + 1
   SDValue CC =
       DAG.getSetCC(DL, MVT::i32, ARIndex,
@@ -1740,7 +1741,8 @@ SDValue XtensaTargetLowering::lowerVAARG(SDValue Op, SelectionDAG &DAG) const {
   // OurReg = RegSaveArea + ARIndex
   SDValue OurReg = DAG.getNode(ISD::ADD, DL, PtrVT, RegSaveArea, ARIndex);
   // OurOverflow = OverflowArea + ARIndex
-  SDValue OurOverflow = DAG.getNode(ISD::ADD, DL, PtrVT, OverflowArea, ARIndex);
+  SDValue ARIndexCorrect = DAG.getNode(ISD::ADD, DL, PtrVT, DAG.getConstant(8, DL, MVT::i32), ARIndex);
+  SDValue OurOverflow = DAG.getNode(ISD::ADD, DL, PtrVT, OverflowArea, ARIndexCorrect);
 
   // determine if we should load from Register save area or Overflow area
   SDValue Result =

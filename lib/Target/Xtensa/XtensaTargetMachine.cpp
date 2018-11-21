@@ -6,6 +6,7 @@
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm/Transforms/Scalar.h"
 
 using namespace llvm;
 
@@ -113,6 +114,7 @@ bool XtensaPassConfig::addInstSelector() {
 }
 
 void XtensaPassConfig::addIRPasses() { 
+    addPass(createAtomicExpandPass());
 //	addPass(createXtensaZOLPass); 
 }
 

@@ -163,7 +163,9 @@ public:
                       const SmallVectorImpl<ISD::OutputArg> &Outs,
                       const SmallVectorImpl<SDValue> &OutVals, const SDLoc &DL,
                       SelectionDAG &DAG) const override;
-
+  bool shouldInsertFencesForAtomic(const Instruction *I) const override {
+    return true;
+  }
   struct LTStr {
     bool operator()(const char *S1, const char *S2) const {
       return strcmp(S1, S2) < 0;
