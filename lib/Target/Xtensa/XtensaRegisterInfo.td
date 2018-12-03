@@ -65,6 +65,9 @@ def sar : SRReg<3, "sar">;
 //def AR : RegisterClass<"Xtensa", [i32], 32, (add 
 //  a0, sp, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15)>;
 
+// Expected data value for S32C1I operation
+def SCOMPARE1 : SRReg<12, "SCOMPARE1">;
+
 // Register class with allocation order
 def AR : RegisterClass<"Xtensa", [i32], 32, (add 
   a8, a9, a10, a11, a12, a13, a14, a15,
@@ -77,6 +80,8 @@ def AR : RegisterClass<"Xtensa", [i32], 32, (add
 // Shift register SAR for right shifts
 //def SARR : RegisterClass<"Xtensa", [i32], 32, (add 
 //  sar)>;
+
+def SCOMPARER : RegisterClass<"Xtensa", [i32], 32, (add SCOMPARE1)>;
 //===----------------------------------------------------------------------===//
 // Floating-Point registers
 //===----------------------------------------------------------------------===//

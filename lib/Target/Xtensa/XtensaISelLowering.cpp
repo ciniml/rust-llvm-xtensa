@@ -127,7 +127,8 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
 
       //setOperationAction(ISD::ATOMIC_LOAD, VT, Expand);
       //setOperationAction(ISD::ATOMIC_STORE, VT, Expand);
-      setOperationAction(ISD::ATOMIC_CMP_SWAP,  VT, Expand);
+     // setOperationAction(ISD::ATOMIC_CMP_SWAP,  VT, Expand);
+      setOperationAction(ISD::ATOMIC_SWAP,  VT, Expand);
     }
   }
 
@@ -309,7 +310,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
 
   // to have the best chance and doing something good with fences custom lower
   // them
-  //setOperationAction(ISD::ATOMIC_FENCE, MVT::Other, Custom);
+  setOperationAction(ISD::ATOMIC_FENCE, MVT::Other, Custom);
 
   if (Subtarget.hasF()) {
     setCondCodeAction(ISD::SETOGT, MVT::f32, Expand);
@@ -1770,10 +1771,10 @@ SDValue XtensaTargetLowering::lowerVACOPY(SDValue Op, SelectionDAG &DAG) const {
 
 
 SDValue XtensaTargetLowering::lowerATOMIC_FENCE(SDValue Op,
-                                                SelectionDAG &DAG) const {
-  // TODO
-  // dummy return
-  return lowerSTACKSAVE(Op, DAG);
+                                                   SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  SDValue Chain = Op.getOperand(0);
+  return DAG.getNode(XtensaISD::MEMW, DL, MVT::isVoid, Chain);
 }
 
 SDValue XtensaTargetLowering::lowerSTACKSAVE(SDValue Op,
@@ -1976,7 +1977,6 @@ const char *XtensaTargetLowering::getTargetNodeName(unsigned Opcode) const {
     OPCODE(CALL);
     OPCODE(CALLW);
     OPCODE(PCREL_WRAPPER);
-    OPCODE(FENCE);
     OPCODE(SELECT);
     OPCODE(SELECT_CC);
     OPCODE(SELECT_CC_FP);
@@ -2001,6 +2001,9 @@ const char *XtensaTargetLowering::getTargetNodeName(unsigned Opcode) const {
     OPCODE(SRC);
     OPCODE(SSL);
     OPCODE(SSR);
+    OPCODE(MEMW);
+    OPCODE(S32C1I);
+    OPCODE(WSR);
   }
   return NULL;
 #undef OPCODE
@@ -2405,9 +2408,61 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
     const TargetRegisterClass *RC = getRegClassFor(MVT::i32);
     unsigned r_new = MRI.createVirtualRegister(RC);
 
+    const MachineMemOperand &MMO = **MI.memoperands_begin();
+    if (MMO.isVolatile()) {
+      BuildMI(*MBB, MI, DL, TII.get(Xtensa::MEMW));
+    }
+
     BuildMI(*MBB, MI, DL, TII.get(Xtensa::L8UI), r_new).add(Op1).add(Op2);
     BuildMI(*MBB, MI, DL, TII.get(Xtensa::SEXT), R.getReg()).addReg(r_new).addImm(7);
     MI.eraseFromParent();
+    return MBB;
+  }
+
+  case Xtensa::ATOMIC_CMP_SWAP_P: {
+    MachineOperand &R = MI.getOperand(0);
+    MachineOperand &Addr = MI.getOperand(1);
+    MachineOperand &Cmp = MI.getOperand(2);
+    MachineOperand &Swap = MI.getOperand(3);
+    const TargetRegisterClass *RC = getRegClassFor(MVT::i32);
+    unsigned r_new1 = MRI.createVirtualRegister(RC);
+    unsigned r_new2 = MRI.createVirtualRegister(RC);
+    unsigned r_new3 = MRI.createVirtualRegister(RC);
+
+    BuildMI(*MBB, MI, DL, TII.get(Xtensa::WSR_SCOMPARE1)).addReg(Cmp.getReg());
+    BuildMI(*MBB, MI, DL, TII.get(Xtensa::S32C1I))
+        .addReg(Swap.getReg())
+        .addImm(0)
+        .addReg(Addr.getReg());
+    BuildMI(*MBB, MI, DL, TII.get(Xtensa::SUB), r_new1)
+        .addReg(Swap.getReg())
+        .addReg(Cmp.getReg());
+    BuildMI(*MBB, MI, DL, TII.get(Xtensa::MOVI_N), r_new3).addImm(0);
+    BuildMI(*MBB, MI, DL, TII.get(Xtensa::MOVI_N), r_new2).addImm(1);
+    BuildMI(*MBB, MI, DL, TII.get(Xtensa::MOVEQZ), R.getReg())
+        .addReg(r_new3)
+        .addReg(r_new2)
+        .addReg(r_new1);
+    MI.eraseFromParent();
+    return MBB;
+  }
+
+  case Xtensa::S8I:
+  case Xtensa::S16I:
+  case Xtensa::S32I: 
+  case Xtensa::S32I_N:
+  case Xtensa::S32F:
+  case Xtensa::L8UI:
+  case Xtensa::L16SI:
+  case Xtensa::L16UI:
+  case Xtensa::L32I:
+  case Xtensa::L32I_N:
+  case Xtensa::L32F:
+  {
+    const MachineMemOperand &MMO = **MI.memoperands_begin();
+    if (MMO.isVolatile()) {
+      BuildMI(*MBB, MI, DL, TII.get(Xtensa::MEMW));
+    }
     return MBB;
   }
 

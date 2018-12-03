@@ -130,23 +130,43 @@ let usesCustomInserter = 1 in
 }
 
 
-def SLLI: RRR_Inst<0x00, 0x01, 0x00, (outs AR:$r), (ins AR:$s, shimm5:$sa),
+def SLLI_SHORT: RRR_Inst<0x00, 0x01, 0x00, (outs AR:$r), (ins AR:$s, shimm4:$sa),
      "slli\t$r, $s, $sa",
-     [(set AR:$r, (shl AR:$s, shimm5:$sa))]> 
+     [(set AR:$r, (shl AR:$s, shimm4:$sa))]> 
 {
-  field bits<5> sa;
+  bits<5> sa;
 
-  let op2 = !and(!srl(sa, 4), 0x01);
+  //let op2 = !and(!srl(sa, 4), 0x01);
   let t = !and(sa, 0xF);
 } 
 
-def SRAI: RRR_Inst<0x00, 0x01, 0x02, (outs AR:$r), (ins AR:$t, shimm5:$sa),
+def SLLI: RRR_Inst<0x00, 0x01, 0x01, (outs AR:$r), (ins AR:$s, shimm5:$sa),
+     "slli\t$r, $s, $sa",
+     [(set AR:$r, (shl AR:$s, shimm5:$sa))]> 
+{
+  bits<5> sa;
+
+  //let op2 = !and(!srl(sa, 4), 0x01);
+  let t = !and(sa, 0xF);
+} 
+
+def SRAI_SHORT: RRR_Inst<0x00, 0x01, 0x02, (outs AR:$r), (ins AR:$t, shimm4:$sa),
+     "srai\t$r, $t, $sa",
+     [(set AR:$r, (sra AR:$t, shimm4:$sa))]> 
+{
+  bits<5> sa;
+
+  //let op2 = !add(0x02, !and(!srl(sa, 4), 0x01));
+  let s = !and(sa, 0xF);
+}
+
+def SRAI: RRR_Inst<0x00, 0x01, 0x03, (outs AR:$r), (ins AR:$t, shimm5:$sa),
      "srai\t$r, $t, $sa",
      [(set AR:$r, (sra AR:$t, shimm5:$sa))]> 
 {
   bits<5> sa;
 
-  let op2 = !add(0x02, !and(!srl(sa, 4), 0x01));
+  //let op2 = !add(0x02, !and(!srl(sa, 4), 0x01));
   let s = !and(sa, 0xF);
 }
 
@@ -223,7 +243,7 @@ let usesCustomInserter = 1 in
 */
 
 // Load instructions
-let mayLoad = 1 in
+let mayLoad = 1, usesCustomInserter = 1 in
 {
   def L32I_N: RRRN_Inst<0x8, (outs AR:$t), (ins mem32n:$addr), 
                 "l32i.n\t$t, $addr", 
@@ -265,7 +285,7 @@ def : Pat<(i32 (extloadi8  addr_ish1:$addr)), (L8UI addr_ish1:$addr)>;
 def : Pat<(i32 (extloadi16 addr_ish2:$addr)), (L16UI addr_ish2:$addr)>;
 
 // Store instructions
-let mayStore = 1 in
+let mayStore = 1, usesCustomInserter = 1 in
 {
   def S32I_N: RRRN_Inst<0x8, (outs), (ins AR:$t, mem32n:$addr),
               "s32i.n\t$t, $addr", 
@@ -758,7 +778,7 @@ def WFR: RRR_Inst<0x05, 0x0A, 0x0f, (outs FPR:$r), (ins AR:$s),
 } 
 
 // FP load instructions
-let mayLoad = 1 in
+let mayLoad = 1, usesCustomInserter = 1 in
 {
   class LoadF_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
      // ComplexPattern addrOp, Operand memOp>: RRI8_Inst<0x02, (outs), (ins AR:$t, memOp:$addr),
@@ -773,7 +793,7 @@ let mayLoad = 1 in
 def L32F: LoadF_RRI8<0x00, "lsi", load, addr_ish4, mem32>;
 
 // FP store instructions
-let mayStore = 1 in
+let mayStore = 1, usesCustomInserter = 1 in
 {
   class StoreF_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
       ComplexPattern addrOp, Operand memOp>: RRI8_Inst<0x03, (outs), (ins FPR:$t, memOp:$addr),
@@ -868,15 +888,36 @@ def : Pat<(i32 (atomic_load_8  addr_ish1:$addr)), (L8UI addr_ish1:$addr)>;
 def : Pat<(i32 (atomic_load_16 addr_ish2:$addr)), (L16UI addr_ish2:$addr)>;
 def : Pat<(i32 (atomic_load_32 addr_ish4:$addr)), (L32I addr_ish4:$addr)>;
 
-def : Pat<(atomic_store_8  AR:$t, addr_ish1:$addr), (S8I AR:$t, addr_ish1:$addr)>;
-def : Pat<(atomic_store_16 AR:$t, addr_ish2:$addr), (S16I AR:$t, addr_ish2:$addr)>;
-def : Pat<(atomic_store_32 AR:$t, addr_ish4:$addr), (S32I AR:$t, addr_ish4:$addr)>;
+def : Pat<(atomic_store_8  addr_ish1:$addr, AR:$t), (S8I AR:$t, addr_ish1:$addr)>;
+def : Pat<(atomic_store_16 addr_ish2:$addr, AR:$t), (S16I AR:$t, addr_ish2:$addr)>;
+def : Pat<(atomic_store_32 addr_ish4:$addr, AR:$t), (S32I AR:$t, addr_ish4:$addr)>;
 
-def MEMW:  RRR_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s, AR:$t),
-     "memw\t",
-     [(atomic_fence AR:$s, AR: $t)]>
+let isCodeGenOnly = 1  in
 {
-  let r = 0x2;
-  let t = 0x0c;
-  let isBarrier = 1;
-} 
+	def MEMW:  RRR_Inst<0x00, 0x00, 0x00, (outs), (ins),
+					"memw", [(Xtensa_mem_barrier)]>
+	{
+	  let r = 0x2;
+	  let t = 0x0c;
+	  let s = 0x0;
+	}
+}
+
+def S32C1I: Store_II8<0x06, "s32c1i", Xtensa_s32c1i, addr_ish4, mem32>
+{
+	let Uses = [SCOMPARE1];
+}
+
+def WSR_SCOMPARE1: RSR_Inst<0x00, 0x03, 0x01, (outs), (ins AR:$t),
+					"wsr\t$t, SCOMPARE1", [(Xtensa_wsr AR:$t)]>
+{
+	let Defs = [SCOMPARE1];
+}
+
+let usesCustomInserter = 1 in
+{
+	def ATOMIC_CMP_SWAP_P: Pseudo<(outs AR:$dst), (ins AR:$ptr, AR:$cmp, AR:$swap),
+										"!atomic_cmp_swap_p, $dst, $ptr, $cmp, $swap",
+										[(set AR:$dst, (atomic_cmp_swap AR:$ptr, AR:$cmp, AR:$swap))]>;
+}
+

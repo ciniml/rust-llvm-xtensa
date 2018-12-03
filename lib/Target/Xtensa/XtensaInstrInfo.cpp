@@ -553,6 +553,7 @@ unsigned XtensaInstrInfo::BranchType(unsigned OpCode) const {
   switch (OpCode) {
   case Xtensa::J:
   case Xtensa::JX:
+  case Xtensa::BR_JT:
     return Xtensa::UBRANCH;
   case Xtensa::BEQ:
   case Xtensa::BNE:
@@ -597,6 +598,7 @@ bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
   switch (OpCode) {
   case Xtensa::J:
   case Xtensa::JX:
+  case Xtensa::BR_JT:
     //    case Xtensa::CALL0:
     //    case Xtensa::CALLX0:
     //Cond[0].setImm(Xtensa::UBRANCH);

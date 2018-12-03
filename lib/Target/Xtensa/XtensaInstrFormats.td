@@ -39,7 +39,7 @@ class RRR_Inst<bits<4> op0, bits<4> op1, bits<4> op2, dag outs, dag ins,
   bits<4> r;
   bits<4> s;
   bits<4> t;
-  bits<4> op2;
+  //bits<4> op2;
 
   let Inst{23-20} = op2;
   let Inst{19-16} = op1;

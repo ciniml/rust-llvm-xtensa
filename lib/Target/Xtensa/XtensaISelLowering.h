@@ -87,7 +87,9 @@ enum {
   SSL,
   SSR,
 
-  FENCE
+  MEMW,
+  S32C1I,
+  WSR
 };
 }
 
