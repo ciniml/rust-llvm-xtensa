@@ -903,9 +903,17 @@ let isCodeGenOnly = 1  in
 	}
 }
 
-def S32C1I: Store_II8<0x06, "s32c1i", Xtensa_s32c1i, addr_ish4, mem32>
+let mayStore = 1, mayLoad = 1, usesCustomInserter = 1 in
 {
+  def S32C1I: RRI8_Inst<0x02, (outs AR:$a), (ins AR:$t, mem32:$addr),
+              "s32c1i\t$t, $addr", 
+			   []>
+             // [(set AR:$a, (Xtensa_s32c1i AR:$t, addr_ish4:$addr))]>
+  {
+    let r = 0x06;
 	let Uses = [SCOMPARE1];
+	let Constraints = "$a = $t";
+  }
 }
 
 def WSR_SCOMPARE1: RSR_Inst<0x00, 0x03, 0x01, (outs), (ins AR:$t),
@@ -916,8 +924,14 @@ def WSR_SCOMPARE1: RSR_Inst<0x00, 0x03, 0x01, (outs), (ins AR:$t),
 
 let usesCustomInserter = 1 in
 {
-	def ATOMIC_CMP_SWAP_P: Pseudo<(outs AR:$dst), (ins AR:$ptr, AR:$cmp, AR:$swap),
-										"!atomic_cmp_swap_p, $dst, $ptr, $cmp, $swap",
-										[(set AR:$dst, (atomic_cmp_swap AR:$ptr, AR:$cmp, AR:$swap))]>;
+	def ATOMIC_CMP_SWAP_8_P: Pseudo<(outs AR:$dst), (ins AR:$ptr, AR:$cmp, AR:$swap),
+										"!atomic_cmp_swap_8_p, $dst, $ptr, $cmp, $swap",
+										[(set AR:$dst, (atomic_cmp_swap_8 AR:$ptr, AR:$cmp, AR:$swap))]>;
+	def ATOMIC_CMP_SWAP_16_P: Pseudo<(outs AR:$dst), (ins AR:$ptr, AR:$cmp, AR:$swap),
+										"!atomic_cmp_swap_16_p, $dst, $ptr, $cmp, $swap",
+										[(set AR:$dst, (atomic_cmp_swap_16 AR:$ptr, AR:$cmp, AR:$swap))]>;
+	def ATOMIC_CMP_SWAP_32_P: Pseudo<(outs AR:$dst), (ins AR:$ptr, AR:$cmp, AR:$swap),
+										"!atomic_cmp_swap_32_p, $dst, $ptr, $cmp, $swap",
+										[(set AR:$dst, (atomic_cmp_swap_32 AR:$ptr, AR:$cmp, AR:$swap))]>;
 }
 

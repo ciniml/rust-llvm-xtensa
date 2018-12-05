@@ -222,6 +222,8 @@ private:
   MachineBasicBlock *emitCALL(MachineInstr *MI, MachineBasicBlock *BB) const;
   MachineBasicBlock *emitSelectCC(MachineInstr &MI,
                                   MachineBasicBlock *BB) const;
+  MachineBasicBlock *emitAtomicCmpSwap(MachineInstr &MI,
+                                  MachineBasicBlock *BB, int isByteOperand) const;
 
   CCAssignFn *CCAssignFnForCall(CallingConv::ID CC,
                                                       bool isVarArg) const;
