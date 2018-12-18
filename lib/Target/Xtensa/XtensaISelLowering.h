@@ -224,6 +224,12 @@ private:
                                   MachineBasicBlock *BB) const;
   MachineBasicBlock *emitAtomicCmpSwap(MachineInstr &MI,
                                   MachineBasicBlock *BB, int isByteOperand) const;
+  MachineBasicBlock *emitAtomicRMW(MachineInstr &MI, MachineBasicBlock *BB,
+                                   bool isByteOperand, unsigned Opcode,
+                                   bool inv, bool minmax) const;
+  MachineBasicBlock *emitAtomicRMW(MachineInstr &MI, MachineBasicBlock *BB,
+                                   unsigned Opcode, bool inv,
+                                   bool minmax) const;
 
   CCAssignFn *CCAssignFnForCall(CallingConv::ID CC,
                                                       bool isVarArg) const;
