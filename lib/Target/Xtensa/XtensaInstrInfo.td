@@ -189,7 +189,7 @@ def MOV_N: RRRN_Inst<0x0D, (outs AR:$t), (ins AR:$s),
 
 def MOVSP: RRR_Inst<0x00, 0x00, 0x00, (outs AR:$t), (ins AR:$s),
    "movsp\t$t, $s",
-   []>
+   [(set AR:$t, (Xtensa_movsp AR:$s))]>
 {
   let r = 0x01;
 }

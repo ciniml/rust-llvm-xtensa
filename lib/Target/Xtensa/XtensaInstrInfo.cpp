@@ -65,17 +65,27 @@ void XtensaInstrInfo::adjustStackPtr(unsigned SP, int64_t Amount,
                                      MachineBasicBlock::iterator I) const {
   DebugLoc DL = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
 
+  if (Amount == 0)
+    return;
+
+  MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
+  const TargetRegisterClass *RC = &Xtensa::ARRegClass;
+
+  // create virtual reg to store immediate
+  unsigned Reg = RegInfo.createVirtualRegister(RC);
+
   if (Amount > 1 && Amount <= 15)
-    BuildMI(MBB, I, DL, get(Xtensa::ADDI_N), SP).addReg(SP).addImm(Amount);
+    BuildMI(MBB, I, DL, get(Xtensa::ADDI_N), Reg).addReg(SP).addImm(Amount);
   else if (isInt<8>(Amount)) // addi sp, sp, amount
-    BuildMI(MBB, I, DL, get(Xtensa::ADDI), SP).addReg(SP).addImm(Amount);
+    BuildMI(MBB, I, DL, get(Xtensa::ADDI), Reg).addReg(SP).addImm(Amount);
   else { // Expand immediate that doesn't fit in 12-bit.
-    unsigned Reg;
-    loadImmediate(MBB, I, &Reg, Amount);
-    BuildMI(MBB, I, DL, get(Xtensa::ADD), SP)
+    unsigned Reg1;
+    loadImmediate(MBB, I, &Reg1, Amount);
+    BuildMI(MBB, I, DL, get(Xtensa::ADD), Reg)
         .addReg(SP)
-        .addReg(Reg, RegState::Kill);
+        .addReg(Reg1, RegState::Kill);
   }
+  BuildMI(MBB, I, DL, get(Xtensa::MOVSP), SP).addReg(Reg, RegState::Kill);
 }
 
 unsigned XtensaInstrInfo::GetInstSizeInBytes(MachineInstr *MI) const {

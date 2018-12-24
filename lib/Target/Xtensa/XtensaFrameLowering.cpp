@@ -222,8 +222,8 @@ void XtensaFrameLowering::emitEpilogue(MachineFunction &MF,
     for (unsigned i = 0; i < MFI.getCalleeSavedInfo().size(); ++i)
       --I;
 
-    // Insert instruction "move $sp, $fp" at this location.
-    BuildMI(MBB, I, dl, TII.get(Xtensa::MOV_N), SP).addReg(FP);
+    // Insert instruction "movsp $sp, $fp" at this location.
+    BuildMI(MBB, I, dl, TII.get(Xtensa::MOVSP), SP).addReg(FP);
   }
 
   if (STI.isWinABI()) {

@@ -78,6 +78,7 @@ enum {
   MSUB,
   // FP move
   MOVS,
+  MOVSP,
 
   //shift
   SHL,

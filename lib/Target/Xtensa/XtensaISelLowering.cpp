@@ -1824,12 +1824,14 @@ SDValue XtensaTargetLowering::lowerDYNAMIC_STACKALLOC(SDValue Op, SelectionDAG &
   unsigned SPReg = Xtensa::sp;
   SDValue SP = DAG.getCopyFromReg(Chain, DL, SPReg, VT);
   SDValue NewSP = DAG.getNode(ISD::SUB, DL, VT, SP, SizeRoundUp);    // Value
-  Chain = DAG.getCopyToReg(SP.getValue(1), DL, SPReg, NewSP); // Output chain
+  SDValue NewSP1 =
+      DAG.getNode(XtensaISD::MOVSP, DL, MVT::i32, NewSP);
+  Chain = DAG.getCopyToReg(SP.getValue(1), DL, SPReg, NewSP1); // Output chain
 
   SDValue NewVal = DAG.getCopyFromReg(Chain, DL, SPReg, MVT::i32);
   Chain = NewVal.getValue(1);
 
-  SDValue Ops[2] = { NewVal, Chain };
+  SDValue Ops[2] = {NewVal, Chain};
   return DAG.getMergeValues(Ops, DL);
 }
 
@@ -1992,6 +1994,7 @@ const char *XtensaTargetLowering::getTargetNodeName(unsigned Opcode) const {
     OPCODE(MADD);
     OPCODE(MSUB);
     OPCODE(MOVS);
+    OPCODE(MOVSP);
     OPCODE(SHL);
     OPCODE(SRA);
     OPCODE(SRL);
