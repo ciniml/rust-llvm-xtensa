@@ -1787,7 +1787,10 @@ SDValue XtensaTargetLowering::lowerSTACKRESTORE(SDValue Op,
   MachineFunction &MF = DAG.getMachineFunction();
   MF.getInfo<XtensaFunctionInfo>()->setManipulatesSP(true);
   unsigned sp = Xtensa::sp;
-  return DAG.getCopyToReg(Op.getOperand(0), SDLoc(Op), sp, Op.getOperand(1));
+  SDValue NewSP =
+      DAG.getNode(XtensaISD::MOVSP, SDLoc(Op), MVT::i32, Op.getOperand(1));
+  return DAG.getCopyToReg(Op.getOperand(0), SDLoc(Op), sp,
+                          NewSP);
 }
 
 SDValue XtensaTargetLowering::lowerFRAMEADDR(SDValue Op,
