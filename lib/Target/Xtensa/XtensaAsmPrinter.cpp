@@ -117,6 +117,9 @@ void XtensaAsmPrinter::EmitMachineConstantPoolValue(
   str += ", ";
   str += MCSym->getName();
 
+  StringRef modifier = ACPV->getModifierText();
+  str += modifier; 
+
   OutStreamer->EmitRawText(str);
 }
 

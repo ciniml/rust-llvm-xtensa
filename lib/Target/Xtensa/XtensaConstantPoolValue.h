@@ -26,6 +26,11 @@ namespace XtensaCP
     CPMachineBasicBlock,
     CPJumpTable
   };
+
+  enum XtensaCPModifier {
+    no_modifier, // None
+    TPOFF        // Thread Pointer Offset
+  };
 }
 
 /// XtensaConstantPoolValue - Xtensa specific constantpool value. This is used to
@@ -35,14 +40,17 @@ class XtensaConstantPoolValue : public MachineConstantPoolValue
 {
   unsigned LabelId;        // Label id of the load.
   XtensaCP::XtensaCPKind Kind;   // Kind of constant.
+  XtensaCP::XtensaCPModifier Modifier; // GV modifier
   bool AddCurrentAddress;
 
 protected:
   XtensaConstantPoolValue(Type *Ty, unsigned id, XtensaCP::XtensaCPKind Kind,
-                       bool AddCurrentAddress);
+                       bool AddCurrentAddress,
+                       XtensaCP::XtensaCPModifier Modifier = XtensaCP::no_modifier);
 
   XtensaConstantPoolValue(LLVMContext &C, unsigned id, XtensaCP::XtensaCPKind Kind, 
-                       bool AddCurrentAddress);
+                       bool AddCurrentAddress,
+                       XtensaCP::XtensaCPModifier Modifier = XtensaCP::no_modifier);
 
   template <typename Derived>
   int getExistingMachineCPValueImpl(MachineConstantPool *CP,
@@ -69,6 +77,11 @@ protected:
 public:
   ~XtensaConstantPoolValue() override;
 
+
+  XtensaCP::XtensaCPModifier getModifier() const { return Modifier; }
+  bool hasModifier() const { return Modifier != XtensaCP::no_modifier; }
+  StringRef getModifierText() const;
+
   bool mustAddCurrentAddress() const { return AddCurrentAddress; }
 
   unsigned getLabelId() const { return LabelId; }
@@ -92,7 +105,7 @@ public:
 
   bool equals(const XtensaConstantPoolValue *A) const 
   {
-    return this->LabelId == A->LabelId;
+    return this->LabelId == A->LabelId && this->Modifier == A->Modifier;
   }
 
   void print(raw_ostream &O) const override;
@@ -164,11 +177,13 @@ class XtensaConstantPoolSymbol : public XtensaConstantPoolValue
   bool PrivateLinkage;
 
   XtensaConstantPoolSymbol(LLVMContext &C, const char *s, unsigned id,
-                           bool AddCurrentAddress, bool PrivLinkage);
+                           bool AddCurrentAddress, bool PrivLinkage,
+                           XtensaCP::XtensaCPModifier Modifier = XtensaCP::no_modifier);
 
 public:
   static XtensaConstantPoolSymbol *Create(LLVMContext &C, const char *s,
-                                       unsigned ID, bool PrivLinkage);
+                                       unsigned ID, bool PrivLinkage,
+                                       XtensaCP::XtensaCPModifier Modifier = XtensaCP::no_modifier);
 
   const char *getSymbol() const { return S.c_str(); }
 

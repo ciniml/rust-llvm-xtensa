@@ -1444,42 +1444,51 @@ SDValue XtensaTargetLowering::lowerGlobalAddress(SDValue Op,
   llvm_unreachable("invalid global addresses to lower");
 }
 
-#if 1
 SDValue XtensaTargetLowering::lowerGlobalTLSAddress(GlobalAddressSDNode *GA,
                                                     SelectionDAG &DAG) const {
-  // TODO
-
-  // If the relocation model is PIC, use the General Dynamic TLS Model or
-  // Local Dynamic TLS model, otherwise use the Initial Exec or
-  // Local Exec TLS Model.
-
   SDLoc DL(GA);
   const GlobalValue *GV = GA->getGlobal();
   EVT PtrVT = getPointerTy(DAG.getDataLayout());
 
   TLSModel::Model model = getTargetMachine().getTLSModel(GV);
 
-  SDValue Offset;
-  if (model == TLSModel::LocalExec) {
+  if (model == TLSModel::InitialExec) {
+    // Initial Exec TLS Model
+    auto PtrVt = getPointerTy(DAG.getDataLayout());
+
+	bool Priv = GV->isPrivateLinkage(GV->getLinkage());
+    // Create a constant pool entry for the callee address
+    XtensaConstantPoolValue *CPV = XtensaConstantPoolSymbol::Create(
+        *DAG.getContext(), GV->getName().str().c_str() /* Sym */,
+            0 /* XtensaCLabelIndex */, Priv, XtensaCP::TPOFF);
+
+    // Get the address of the callee into a register
+    SDValue CPAddr = DAG.getTargetConstantPool(CPV, PtrVt, 4);
+    SDValue CPWrap = getAddrPIC(CPAddr, DAG);
+
+    SDValue ThreadPointer = DAG.getNode(XtensaISD::RUR, DL, PtrVT);
+    return DAG.getNode(ISD::ADD, DL, PtrVT, ThreadPointer, CPWrap);
+  } else if (model == TLSModel::LocalExec) {
     // Local Exec TLS Model
-    assert(model == TLSModel::LocalExec);
-    SDValue TGAHi =
-        DAG.getTargetGlobalAddress(GV, DL, PtrVT, 0, XtensaII::MO_TPREL_HI);
-    SDValue TGALo =
-        DAG.getTargetGlobalAddress(GV, DL, PtrVT, 0, XtensaII::MO_TPREL_LO);
-    SDValue Hi = DAG.getNode(XtensaISD::Hi, DL, PtrVT, TGAHi);
-    SDValue Lo = DAG.getNode(XtensaISD::Lo, DL, PtrVT, TGALo);
-    Offset = DAG.getNode(ISD::ADD, DL, PtrVT, Hi, Lo);
+    auto PtrVt = getPointerTy(DAG.getDataLayout());
+
+    bool Priv = GV->isPrivateLinkage(GV->getLinkage());
+    // Create a constant pool entry for the callee address
+    XtensaConstantPoolValue *CPV = XtensaConstantPoolSymbol::Create(
+        *DAG.getContext(), GV->getName().str().c_str() /* Sym */,
+        0 /* XtensaCLabelIndex */, Priv, XtensaCP::TPOFF);
+
+    // Get the address of the callee into a register
+    SDValue CPAddr = DAG.getTargetConstantPool(CPV, PtrVt, 4);
+    SDValue CPWrap = getAddrPIC(CPAddr, DAG);
+
+    SDValue ThreadPointer = DAG.getNode(XtensaISD::RUR, DL, PtrVT);
+    return DAG.getNode(ISD::ADD, DL, PtrVT, ThreadPointer, CPWrap);
   } else
     llvm_unreachable("only local-exec TLS mode supported");
 
-  // SDValue ThreadPointer = DAG.getNode(XtensaISD::ThreadPointer, DL, PtrVT);
-  SDValue ThreadPointer =
-      DAG.getRegister(Xtensa::a11 /* TODO Xtensa::tp */, PtrVT);
-
-  return DAG.getNode(ISD::ADD, DL, PtrVT, ThreadPointer, Offset);
+  return SDValue();
 }
-#endif
 
 SDValue XtensaTargetLowering::lowerBlockAddress(BlockAddressSDNode *Node,
                                                 SelectionDAG &DAG) const {
@@ -2007,6 +2016,7 @@ const char *XtensaTargetLowering::getTargetNodeName(unsigned Opcode) const {
     OPCODE(MEMW);
     OPCODE(S32C1I);
     OPCODE(WSR);
+    OPCODE(RUR);
   }
   return NULL;
 #undef OPCODE

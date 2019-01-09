@@ -90,7 +90,8 @@ enum {
 
   MEMW,
   S32C1I,
-  WSR
+  WSR,
+  RUR
 };
 }
 

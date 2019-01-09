@@ -11,20 +11,33 @@ using namespace llvm;
 
 XtensaConstantPoolValue::XtensaConstantPoolValue(Type *Ty, unsigned id,
                                            XtensaCP::XtensaCPKind kind,
-                                           bool addCurrentAddress)
+                                           bool addCurrentAddress,
+                                           XtensaCP::XtensaCPModifier modifier)
   : MachineConstantPoolValue(Ty), LabelId(id), Kind(kind),
-    AddCurrentAddress(addCurrentAddress) {}
+    AddCurrentAddress(addCurrentAddress), Modifier(modifier)
+{}
 
 XtensaConstantPoolValue::XtensaConstantPoolValue(LLVMContext &C, unsigned id,
                                            XtensaCP::XtensaCPKind kind,
-                                           bool addCurrentAddress)
+                                           bool addCurrentAddress,
+                                           XtensaCP::XtensaCPModifier modifier)
   : MachineConstantPoolValue((Type*)Type::getInt32Ty(C)),
     LabelId(id), Kind(kind),
-    AddCurrentAddress(addCurrentAddress) 
+    AddCurrentAddress(addCurrentAddress), Modifier(modifier) 
 {
 }
 
 XtensaConstantPoolValue::~XtensaConstantPoolValue() {}
+
+StringRef XtensaConstantPoolValue::getModifierText() const {
+  switch (Modifier) {
+  case XtensaCP::no_modifier:
+    return "";
+  case XtensaCP::TPOFF:
+    return "@TPOFF";
+  }
+  llvm_unreachable("Unknown modifier!");
+} 
 
 int XtensaConstantPoolValue::getExistingMachineCPValue(MachineConstantPool *CP,
                                                     unsigned Alignment) 
@@ -150,18 +163,18 @@ void XtensaConstantPoolConstant::print(raw_ostream &O) const
 }
 
 XtensaConstantPoolSymbol::XtensaConstantPoolSymbol(LLVMContext &C, const char *s, unsigned id,
-                                                   bool AddCurrentAddress, bool PrivLinkage)
-  : XtensaConstantPoolValue(C, id, XtensaCP::CPExtSymbol, AddCurrentAddress),
+                                                   bool AddCurrentAddress, bool PrivLinkage, XtensaCP::XtensaCPModifier Modifier)
+  : XtensaConstantPoolValue(C, id, XtensaCP::CPExtSymbol, AddCurrentAddress, Modifier),
       S(s), PrivateLinkage(PrivLinkage) 
 {
 }
 
 XtensaConstantPoolSymbol *
 XtensaConstantPoolSymbol::Create(LLVMContext &C, const char *s, unsigned ID,
-                                 bool PrivLinkage)
+                                 bool PrivLinkage, XtensaCP::XtensaCPModifier Modifier)
                                  
 {
-  return new XtensaConstantPoolSymbol(C, s, ID, false, PrivLinkage);
+  return new XtensaConstantPoolSymbol(C, s, ID, false, PrivLinkage, Modifier);
 }
 
 int XtensaConstantPoolSymbol::getExistingMachineCPValue(MachineConstantPool *CP,

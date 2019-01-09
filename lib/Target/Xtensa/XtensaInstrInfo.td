@@ -1035,3 +1035,9 @@ let usesCustomInserter = 1 in
 										[(set AR:$dst, (atomic_load_umax_32 AR:$ptr, AR:$arg))]>;	
 }
 
+def RUR_THREADPTR: RRR_Inst<0x00, 0x03, 0x0e, (outs AR:$dst), (ins),
+					"rur\t$dst, THREADPTR", [(set AR:$dst, (Xtensa_rur))]>
+{
+	let s = 0xE;
+	let t = 0x7;
+}

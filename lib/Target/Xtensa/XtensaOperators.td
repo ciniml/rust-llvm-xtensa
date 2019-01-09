@@ -32,7 +32,8 @@ def SDT_XtensaBrJT               : SDTypeProfile<0, 2, [SDTCisPtrTy<0>, SDTCisVT
 def SDT_XtensaMEMBARRIER         : SDTypeProfile<0, 0, []>;
 def SDT_XtensaS32C1I             : SDTypeProfile<0, 2, [SDTCisSameAs<0, 1>, SDTCisVT<0, i32>]>;
 def SDT_XtensaWSR                : SDTypeProfile<0, 1, [SDTCisVT<0, i32>]>;
-def SDT_XtensaMOVSP               : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>, SDTCisVT<0, i32>]>;
+def SDT_XtensaMOVSP              : SDTypeProfile<1, 1, [SDTCisSameAs<0, 1>, SDTCisVT<0, i32>]>;
+def SDT_XtensaRUR                : SDTypeProfile<1, 0, [SDTCisVT<0, i32>]>;
 //===----------------------------------------------------------------------===//
 // Node definitions
 //===----------------------------------------------------------------------===//
@@ -116,4 +117,7 @@ def Xtensa_wsr: SDNode<"XtensaISD::WSR", SDT_XtensaWSR,
                             [SDNPInGlue]>;
 
 def Xtensa_movsp: SDNode<"XtensaISD::MOVSP", SDT_XtensaMOVSP,
+                            [SDNPInGlue]>;
+
+def Xtensa_rur: SDNode<"XtensaISD::RUR", SDT_XtensaRUR,
                             [SDNPInGlue]>;
