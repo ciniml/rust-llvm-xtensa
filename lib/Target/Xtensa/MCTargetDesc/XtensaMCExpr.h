@@ -21,10 +21,7 @@ namespace llvm {
 class StringRef;
 class XtensaMCExpr : public MCTargetExpr {
 public:
-  enum VariantKind {
-    VK_Xtensa_None,
-    VK_Xtensa_Invalid
-  };
+  enum VariantKind { VK_Xtensa_None, VK_Xtensa_Invalid };
 
 private:
   const MCExpr *Expr;
@@ -35,7 +32,7 @@ private:
 
 public:
   static const XtensaMCExpr *create(const MCExpr *Expr, VariantKind Kind,
-                                   MCContext &Ctx);
+                                    MCContext &Ctx);
 
   VariantKind getKind() const { return Kind; }
 
@@ -65,4 +62,3 @@ public:
 } // end namespace llvm.
 
 #endif
-

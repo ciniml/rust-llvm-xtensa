@@ -1,3 +1,12 @@
+//===- XtensaInstrFormats.td - Xtensa Instruction Formats -------*- tablegen -*-===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===---------------------------------------------------------------------------===//
+
 // Base class for Xtensa 16 & 24 bit Formats
 class XtensaInst<int size, dag outs, dag ins, string asmstr, list<dag> pattern,
                       InstrItinClass itin = NoItinerary>: Instruction

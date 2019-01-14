@@ -1,10 +1,23 @@
+//===- XtensaTargetMachine.cpp - Define TargetMachine for Xtensa ----------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+//
+// Implements the info about Xtensa target spec.
+//
+//===----------------------------------------------------------------------===//
+
 #include "XtensaTargetMachine.h"
 #include "XtensaTargetObjectFile.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
 #include "llvm/CodeGen/TargetPassConfig.h"
-#include "llvm/Support/TargetRegistry.h"
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/Support/TargetRegistry.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Scalar.h"
 
@@ -113,9 +126,9 @@ bool XtensaPassConfig::addInstSelector() {
   return false;
 }
 
-void XtensaPassConfig::addIRPasses() { 
-    addPass(createAtomicExpandPass());
-//	addPass(createXtensaZOLPass); 
+void XtensaPassConfig::addIRPasses() {
+  addPass(createAtomicExpandPass());
+  //	addPass(createXtensaZOLPass);
 }
 
 void XtensaPassConfig::addPreEmitPass() {
@@ -128,7 +141,7 @@ TargetPassConfig *XtensaTargetMachine::createPassConfig(PassManagerBase &PM) {
 }
 
 void XtensaTargetMachine::adjustPassManager(PassManagerBuilder &PMB) {
-  /*  
+  /*
   PMB.addExtension(
       PassManagerBuilder::EP_LoopOptimizerEnd,
       [&](const PassManagerBuilder &, legacy::PassManagerBase &PM) {

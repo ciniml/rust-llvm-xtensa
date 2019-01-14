@@ -1,3 +1,12 @@
+//===- XtensaOperands.td - Xtensa instruction operands ----*- tblgen-*--===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===-------------------------------------------------------------------===//
+
 include "XtensaOperators.td"
 
 // Immediate operands with a shared generic render method.

@@ -1,6 +1,19 @@
+//===-- XtensaMCCodeEmitter.cpp - Convert Xtensa Code to Machine Code -----===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+//
+// This file implements the XtensaMCCodeEmitter class.
+//
+//===----------------------------------------------------------------------===//
+
 #define DEBUG_TYPE "mccodeemitter"
-#include "MCTargetDesc/XtensaMCTargetDesc.h"
 #include "MCTargetDesc/XtensaMCFixups.h"
+#include "MCTargetDesc/XtensaMCTargetDesc.h"
 #include "llvm/MC/MCCodeEmitter.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCExpr.h"
@@ -10,18 +23,14 @@
 
 using namespace llvm;
 
-namespace 
-{
-class XtensaMCCodeEmitter : public MCCodeEmitter 
-{
+namespace {
+class XtensaMCCodeEmitter : public MCCodeEmitter {
   const MCInstrInfo &MCII;
   MCContext &Ctx;
 
 public:
   XtensaMCCodeEmitter(const MCInstrInfo &mcii, MCContext &ctx)
-    : MCII(mcii), Ctx(ctx) 
-  {
-  }
+      : MCII(mcii), Ctx(ctx) {}
 
   ~XtensaMCCodeEmitter() {}
 
@@ -42,13 +51,12 @@ private:
                              SmallVectorImpl<MCFixup> &Fixups,
                              const MCSubtargetInfo &STI) const;
 
-  //Xtensa
+  // Xtensa
   unsigned getJumpTargetEncoding(const MCInst &MI, unsigned int OpNum,
                                  SmallVectorImpl<MCFixup> &Fixups,
-                                 const MCSubtargetInfo &STI) const 
-  {
+                                 const MCSubtargetInfo &STI) const {
     const MCOperand &MO = MI.getOperand(OpNum);
-    //TODO: do we need to sign extend explicitly?
+    // TODO: do we need to sign extend explicitly?
     if (MO.isImm())
       return MO.getImm() << 1;
     llvm_unreachable("Jump with no immediate field");
@@ -56,26 +64,24 @@ private:
 
   unsigned getBranchTargetEncoding(const MCInst &MI, unsigned int OpNum,
                                    SmallVectorImpl<MCFixup> &Fixups,
-                                   const MCSubtargetInfo &STI) const 
-  {
+                                   const MCSubtargetInfo &STI) const {
     const MCOperand &MO = MI.getOperand(OpNum);
-    //TODO: do we need to sign extend explicitly?
+    // TODO: do we need to sign extend explicitly?
     if (MO.isImm())
       return MO.getImm() << 1;
     // Branch target is expr add fixup
     Fixups.push_back(MCFixup::create(0, MO.getExpr(),
-          (MCFixupKind)Xtensa::fixup_xtensa_brlo));
+                                     (MCFixupKind)Xtensa::fixup_xtensa_brlo));
     Fixups.push_back(MCFixup::create(0, MO.getExpr(),
-          (MCFixupKind)Xtensa::fixup_xtensa_brhi));
+                                     (MCFixupKind)Xtensa::fixup_xtensa_brhi));
     return 0;
   }
 
   unsigned getPCImmEncoding(const MCInst &MI, unsigned int OpNum,
                             SmallVectorImpl<MCFixup> &Fixups,
-                            const MCSubtargetInfo &STI) const 
-  {
+                            const MCSubtargetInfo &STI) const {
     const MCOperand &MO = MI.getOperand(OpNum);
-    //TODO: do we need to sign extend explicitly?
+    // TODO: do we need to sign extend explicitly?
     if (MO.isImm())
       return MO.getImm();
     llvm_unreachable("Branch with no immediate field");
@@ -83,10 +89,9 @@ private:
 
   unsigned getPCImm64Encoding(const MCInst &MI, unsigned int OpNum,
                               SmallVectorImpl<MCFixup> &Fixups,
-                              const MCSubtargetInfo &STI) const 
-  {
+                              const MCSubtargetInfo &STI) const {
     const MCOperand &MO = MI.getOperand(OpNum);
-    //TODO: do we need to sign extend explicitly?
+    // TODO: do we need to sign extend explicitly?
     if (MO.isImm())
       return MO.getImm() << 12;
     llvm_unreachable("Branch with no immediate field");
@@ -97,29 +102,26 @@ private:
   // and return the in-place addend, which since we're a RELA target
   // is always 0.
   unsigned getPCRelEncoding(const MCInst &MI, unsigned int OpNum,
-                            SmallVectorImpl<MCFixup> &Fixups,
-                            unsigned Kind, int64_t Offset) const;
+                            SmallVectorImpl<MCFixup> &Fixups, unsigned Kind,
+                            int64_t Offset) const;
 
   unsigned getCallEncoding(const MCInst &MI, unsigned int OpNum,
-                               SmallVectorImpl<MCFixup> &Fixups, 
-                               const MCSubtargetInfo &STI) const 
-  {
+                           SmallVectorImpl<MCFixup> &Fixups,
+                           const MCSubtargetInfo &STI) const {
     return getPCRelEncoding(MI, OpNum, Fixups, Xtensa::fixup_xtensa_call, 0);
   }
 };
-}
+} // namespace
 
 MCCodeEmitter *llvm::createXtensaMCCodeEmitter(const MCInstrInfo &MCII,
-                                                const MCRegisterInfo &MRI,
-                                                MCContext &Ctx) 
-{
+                                               const MCRegisterInfo &MRI,
+                                               MCContext &Ctx) {
   return new XtensaMCCodeEmitter(MCII, Ctx);
 }
 
 void XtensaMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
-                                           SmallVectorImpl<MCFixup> &Fixups,
-                                           const MCSubtargetInfo &STI) const 
-{
+                                            SmallVectorImpl<MCFixup> &Fixups,
+                                            const MCSubtargetInfo &STI) const {
   uint64_t Bits = getBinaryCodeForInstr(MI, Fixups, STI);
   unsigned Size = MCII.get(MI.getOpcode()).getSize();
   // Little-endian insertion of Size bytes.
@@ -132,9 +134,8 @@ void XtensaMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
 
 unsigned
 XtensaMCCodeEmitter::getMachineOpValue(const MCInst &MI, const MCOperand &MO,
-                                      SmallVectorImpl<MCFixup> &Fixups,
-                                      const MCSubtargetInfo &STI) const 
-{
+                                       SmallVectorImpl<MCFixup> &Fixups,
+                                       const MCSubtargetInfo &STI) const {
   if (MO.isReg())
     return Ctx.getRegisterInfo()->getEncodingValue(MO.getReg());
   if (MO.isImm())
@@ -142,11 +143,11 @@ XtensaMCCodeEmitter::getMachineOpValue(const MCInst &MI, const MCOperand &MO,
   llvm_unreachable("Unexpected operand type!");
 }
 
-unsigned
-XtensaMCCodeEmitter::getPCRelEncoding(const MCInst &MI, unsigned int OpNum,
-                                       SmallVectorImpl<MCFixup> &Fixups,
-                                       unsigned Kind, int64_t Offset) const 
-{
+unsigned XtensaMCCodeEmitter::getPCRelEncoding(const MCInst &MI,
+                                               unsigned int OpNum,
+                                               SmallVectorImpl<MCFixup> &Fixups,
+                                               unsigned Kind,
+                                               int64_t Offset) const {
   const MCOperand &MO = MI.getOperand(OpNum);
   // For compatibility with the GNU assembler, treat constant operands as
   // unadjusted PC-relative offsets.

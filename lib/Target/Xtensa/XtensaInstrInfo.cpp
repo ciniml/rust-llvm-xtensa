@@ -1,3 +1,16 @@
+//===- XtensaInstrInfo.cpp - Xtensa Instruction Information ---------------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+//
+// This file contains the Xtensa implementation of the TargetInstrInfo class.
+//
+//===----------------------------------------------------------------------===//
+
 #include "XtensaInstrInfo.h"
 #include "XtensaTargetMachine.h"
 #include "llvm/CodeGen/MachineConstantPool.h"
@@ -137,7 +150,7 @@ bool XtensaInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     if (!ThisTarget->isMBB())
       return true;
 
-    //if (ThisCond[0].getImm() == Xtensa::JX)
+    // if (ThisCond[0].getImm() == Xtensa::JX)
     //  return true;
 
     if (ThisCond[0].getImm() == Xtensa::J) {
@@ -177,7 +190,7 @@ bool XtensaInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
       Cond.push_back(MachineOperand::CreateImm(ThisCond[0].getImm()));
 
       // push remaining operands
-      for (unsigned int i = 0; i < (I->getNumExplicitOperands()-1); i++)
+      for (unsigned int i = 0; i < (I->getNumExplicitOperands() - 1); i++)
         Cond.push_back(I->getOperand(i));
 
       continue;
@@ -281,9 +294,7 @@ unsigned XtensaInstrInfo::InsertConstBranchAtInst(MachineBasicBlock &MBB,
         .addImm(Cond[2].getImm());
     break;
   case Xtensa::CBRANCH_RZ:
-    BuildMI(MBB, I, DL, get(BR_C))
-        .addImm(offset)
-        .addReg(Cond[1].getReg());
+    BuildMI(MBB, I, DL, get(BR_C)).addImm(offset).addReg(Cond[1].getReg());
     break;
   case Xtensa::CBRANCH_B:
     BuildMI(MBB, I, DL, get(BR_C)).addImm(offset).addReg(Cond[1].getReg());
@@ -328,14 +339,10 @@ unsigned XtensaInstrInfo::InsertBranchAtInst(MachineBasicBlock &MBB,
         .addMBB(TBB);
     break;
   case Xtensa::CBRANCH_RZ:
-    BuildMI(MBB, I, DL, get(BR_C))
-        .addReg(Cond[1].getReg())
-        .addMBB(TBB);
+    BuildMI(MBB, I, DL, get(BR_C)).addReg(Cond[1].getReg()).addMBB(TBB);
     break;
   case Xtensa::CBRANCH_B:
-    BuildMI(MBB, I, DL, get(BR_C))
-		.addReg(Cond[1].getReg())
-        .addMBB(TBB);
+    BuildMI(MBB, I, DL, get(BR_C)).addReg(Cond[1].getReg()).addMBB(TBB);
     break;
   default:
     llvm_unreachable("Invalid branch type!");
@@ -507,13 +514,13 @@ bool XtensaInstrInfo::reverseBranchCondition(
     return false;
   case Xtensa::BGTU:
     Cond[0].setImm(Xtensa::BLEU);
-  return false;
+    return false;
   case Xtensa::BLE:
     Cond[0].setImm(Xtensa::BGT);
-  return false;
+    return false;
   case Xtensa::BLEU:
     Cond[0].setImm(Xtensa::BGTU);
-  return false;
+    return false;
 
   case Xtensa::BEQI:
     Cond[0].setImm(Xtensa::BNEI);
@@ -546,7 +553,6 @@ bool XtensaInstrInfo::reverseBranchCondition(
   case Xtensa::BGEZ:
     Cond[0].setImm(Xtensa::BLTZ);
     return false;
-
 
   case Xtensa::BFs:
     Cond[0].setImm(Xtensa::BTs);
@@ -611,7 +617,7 @@ bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
   case Xtensa::BR_JT:
     //    case Xtensa::CALL0:
     //    case Xtensa::CALLX0:
-    //Cond[0].setImm(Xtensa::UBRANCH);
+    // Cond[0].setImm(Xtensa::UBRANCH);
     Cond[0].setImm(OpCode);
     Target = &MI->getOperand(0);
     return true;
@@ -625,7 +631,7 @@ bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
   case Xtensa::BGTU:
   case Xtensa::BLE:
   case Xtensa::BLEU:
-    //Cond[0].setImm(Xtensa::CBRANCH_RR);
+    // Cond[0].setImm(Xtensa::CBRANCH_RR);
     Cond[0].setImm(OpCode);
     Target = &MI->getOperand(2);
     return true;
@@ -636,7 +642,7 @@ bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
   case Xtensa::BLTUI:
   case Xtensa::BGEI:
   case Xtensa::BGEUI:
-    //Cond[0].setImm(Xtensa::CBRANCH_RI);
+    // Cond[0].setImm(Xtensa::CBRANCH_RI);
     Cond[0].setImm(OpCode);
     Target = &MI->getOperand(2);
     return true;
@@ -645,14 +651,14 @@ bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
   case Xtensa::BNEZ:
   case Xtensa::BLTZ:
   case Xtensa::BGEZ:
-    //Cond[0].setImm(Xtensa::CBRANCH_RZ);
+    // Cond[0].setImm(Xtensa::CBRANCH_RZ);
     Cond[0].setImm(OpCode);
     Target = &MI->getOperand(1);
     return true;
 
   case Xtensa::BTs:
   case Xtensa::BFs:
-    //Cond[0].setImm(Xtensa::CBRANCH_B);
+    // Cond[0].setImm(Xtensa::CBRANCH_B);
     Cond[0].setImm(OpCode);
     Target = &MI->getOperand(1);
     return true;
@@ -713,18 +719,17 @@ void XtensaInstrInfo::loadImmediate(MachineBasicBlock &MBB,
   } else if (Value >= -4294967296LL && Value <= 4294967295LL) {
     // 32 bit arbirary constant
     MachineConstantPool *MCP = MBB.getParent()->getConstantPool();
-    uint64_t UVal = ((uint64_t) Value) & 0xFFFFFFFFLL;
+    uint64_t UVal = ((uint64_t)Value) & 0xFFFFFFFFLL;
     const Constant *CVal = ConstantInt::get(
         Type::getInt32Ty(MBB.getParent()->getFunction().getContext()), UVal,
         false);
-	unsigned Idx = MCP->getConstantPoolIndex(CVal, 2U);
-//	MCSymbol MSym
+    unsigned Idx = MCP->getConstantPoolIndex(CVal, 2U);
+    //	MCSymbol MSym
     BuildMI(MBB, MBBI, DL, get(Xtensa::L32R), *Reg).addConstantPoolIndex(Idx);
   } else {
-      // use L32R to let assembler load immediate best
-      // TODO replace to L32R
-      llvm_unreachable("Unsupported load immediate value");
-      //    BuildMI(MBB, MBBI, DL, get(Xtensa::LI), *Reg).addImm(Value);
-    }
+    // use L32R to let assembler load immediate best
+    // TODO replace to L32R
+    llvm_unreachable("Unsupported load immediate value");
+    //    BuildMI(MBB, MBBI, DL, get(Xtensa::LI), *Reg).addImm(Value);
+  }
 }
-

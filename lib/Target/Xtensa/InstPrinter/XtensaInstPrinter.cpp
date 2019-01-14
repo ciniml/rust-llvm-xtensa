@@ -1,3 +1,16 @@
+//===- XtensaInstPrinter.cpp - Convert Xtensa MCInst to assembly syntax --------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===---------------------------------------------------------------------------===//
+//
+// This class prints an Xtensa MCInst to a .s file.
+//
+//===---------------------------------------------------------------------------===//
+
 #include "XtensaInstPrinter.h"
 #include "XtensaInstrInfo.h"
 #include "llvm/CodeGen/MachineOperand.h"
@@ -145,7 +158,8 @@ void XtensaInstPrinter::printImm8_sh8_AsmOperand(const MCInst *MI, int OpNum,
                                                  raw_ostream &O) {
   if (MI->getOperand(OpNum).isImm()) {
     int64_t Value = MI->getOperand(OpNum).getImm();
-    assert((Value >= -32768 && Value <= 32512 && ((Value & 0xFF) == 0)) && "Invalid imm8_sh8 argument");
+    assert((Value >= -32768 && Value <= 32512 && ((Value & 0xFF) == 0)) &&
+           "Invalid imm8_sh8 argument");
     O << Value;
   } else
     printOperand(MI, OpNum, O);
@@ -259,7 +273,7 @@ void XtensaInstPrinter::printB4const_AsmOperand(const MCInst *MI, int OpNum,
   if (MI->getOperand(OpNum).isImm()) {
     int64_t Value = MI->getOperand(OpNum).getImm();
 
-   switch (Value) {
+    switch (Value) {
     case -1:
     case 1:
     case 2:
@@ -286,7 +300,7 @@ void XtensaInstPrinter::printB4const_AsmOperand(const MCInst *MI, int OpNum,
 }
 
 void XtensaInstPrinter::printB4constu_AsmOperand(const MCInst *MI, int OpNum,
-                                                raw_ostream &O) {
+                                                 raw_ostream &O) {
   if (MI->getOperand(OpNum).isImm()) {
     int64_t Value = MI->getOperand(OpNum).getImm();
 

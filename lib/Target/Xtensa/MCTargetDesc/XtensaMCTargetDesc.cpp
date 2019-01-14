@@ -1,3 +1,12 @@
+//===-- XtensaMCTargetDesc.cpp - Xtebsa target descriptions --------------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+
 #include "XtensaMCTargetDesc.h"
 #include "InstPrinter/XtensaInstPrinter.h"
 #include "XtensaMCAsmInfo.h"
@@ -8,7 +17,7 @@
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSubtargetInfo.h"
 #include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/TargetRegistry.h" 
+#include "llvm/Support/TargetRegistry.h"
 
 #define GET_INSTRINFO_MC_DESC
 #include "XtensaGenInstrInfo.inc"
@@ -22,8 +31,7 @@
 using namespace llvm;
 
 static MCAsmInfo *createXtensaMCAsmInfo(const MCRegisterInfo &MRI,
-                                       const Triple &TT) 
-{
+                                        const Triple &TT) {
   MCAsmInfo *MAI = new XtensaMCAsmInfo();
   MCCFIInstruction Inst = MCCFIInstruction::createDefCfa(
       nullptr, MRI.getDwarfRegNum(Xtensa::sp, true),
@@ -32,24 +40,20 @@ static MCAsmInfo *createXtensaMCAsmInfo(const MCRegisterInfo &MRI,
   return MAI;
 }
 
-static MCInstrInfo *createXtensaMCInstrInfo() 
-{
+static MCInstrInfo *createXtensaMCInstrInfo() {
   MCInstrInfo *X = new MCInstrInfo();
   InitXtensaMCInstrInfo(X);
   return X;
 }
 
-static MCRegisterInfo *createXtensaMCRegisterInfo(const Triple &TT) 
-{
+static MCRegisterInfo *createXtensaMCRegisterInfo(const Triple &TT) {
   MCRegisterInfo *X = new MCRegisterInfo();
   InitXtensaMCRegisterInfo(X, Xtensa::sp);
   return X;
 }
 
-static MCSubtargetInfo *createXtensaMCSubtargetInfo(const Triple &TT,
-                                                     StringRef CPU,
-                                                     StringRef FS) 
-{
+static MCSubtargetInfo *
+createXtensaMCSubtargetInfo(const Triple &TT, StringRef CPU, StringRef FS) {
   return createXtensaMCSubtargetInfoImpl(TT, CPU, FS);
 }
 #if 0
@@ -101,29 +105,25 @@ static MCCodeGenInfo *createXtensaMCCodeGenInfo(const Triple &TT, Reloc::Model R
 }
 #endif
 static MCInstPrinter *createXtensaMCInstPrinter(const Triple &TT,
-                                                 unsigned SyntaxVariant,
-                                                 const MCAsmInfo &MAI,
-                                                 const MCInstrInfo &MII,
-                                                 const MCRegisterInfo &MRI) 
-{
+                                                unsigned SyntaxVariant,
+                                                const MCAsmInfo &MAI,
+                                                const MCInstrInfo &MII,
+                                                const MCRegisterInfo &MRI) {
   return new XtensaInstPrinter(MAI, MII, MRI);
 }
 
-static MCStreamer *createXtensaMCObjectStreamer(const Triple &T, MCContext &Context,
-                                    std::unique_ptr<MCAsmBackend> &&MAB,
-                                    raw_pwrite_stream &OS,
-                                    std::unique_ptr<MCCodeEmitter> &&Emitter,
-                                    bool RelaxAll) {
-  //return createELFStreamer(Ctx, MAB, OS, Emitter, RelaxAll);
+static MCStreamer *createXtensaMCObjectStreamer(
+    const Triple &T, MCContext &Context, std::unique_ptr<MCAsmBackend> &&MAB,
+    raw_pwrite_stream &OS, std::unique_ptr<MCCodeEmitter> &&Emitter,
+    bool RelaxAll) {
+  // return createELFStreamer(Ctx, MAB, OS, Emitter, RelaxAll);
   return createELFStreamer(Context, std::move(MAB), OS, std::move(Emitter),
-                              RelaxAll);
+                           RelaxAll);
 }
 
-extern "C" void LLVMInitializeXtensaTargetMC() 
-{
+extern "C" void LLVMInitializeXtensaTargetMC() {
   // Register the MCAsmInfo.
-  TargetRegistry::RegisterMCAsmInfo(TheXtensaTarget,
-                                    createXtensaMCAsmInfo);
+  TargetRegistry::RegisterMCAsmInfo(TheXtensaTarget, createXtensaMCAsmInfo);
 #if 0
   // Register the MCCodeGenInfo.
   TargetRegistry::RegisterMCCodeGenInfo(TheXtensaTarget,
@@ -131,13 +131,11 @@ extern "C" void LLVMInitializeXtensaTargetMC()
 #endif
   // Register the MCCodeEmitter.
   TargetRegistry::RegisterMCCodeEmitter(TheXtensaTarget,
-					createXtensaMCCodeEmitter);
+                                        createXtensaMCCodeEmitter);
 
   // Register the MCInstrInfo.
-  TargetRegistry::RegisterMCInstrInfo(TheXtensaTarget,
-                                      createXtensaMCInstrInfo);
-  TargetRegistry::RegisterMCInstrInfo(TheXtensaTarget,
-                                      createXtensaMCInstrInfo);
+  TargetRegistry::RegisterMCInstrInfo(TheXtensaTarget, createXtensaMCInstrInfo);
+  TargetRegistry::RegisterMCInstrInfo(TheXtensaTarget, createXtensaMCInstrInfo);
 
   // Register the MCRegisterInfo.
   TargetRegistry::RegisterMCRegInfo(TheXtensaTarget,
@@ -157,5 +155,5 @@ extern "C" void LLVMInitializeXtensaTargetMC()
 
   // Register the MCObjectStreamer;
   TargetRegistry::RegisterELFStreamer(TheXtensaTarget,
-                                           createXtensaMCObjectStreamer);
+                                      createXtensaMCObjectStreamer);
 }

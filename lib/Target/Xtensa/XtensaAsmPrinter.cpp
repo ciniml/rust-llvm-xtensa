@@ -1,5 +1,19 @@
-#include "InstPrinter/XtensaInstPrinter.h"
+//===- XtensaAsmPrinter.cpp Xtensa LLVM Assembly Printer ------------------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+//
+// This file contains a printer that converts from our internal representation
+// of machine-dependent LLVM code to GAS-format Xtensa assembly language.
+//
+//===----------------------------------------------------------------------===//
+
 #include "XtensaAsmPrinter.h"
+#include "InstPrinter/XtensaInstPrinter.h"
 #include "XtensaConstantPoolValue.h"
 #include "XtensaMCInstLower.h"
 #include "llvm/CodeGen/MachineModuleInfoImpls.h"
@@ -29,7 +43,7 @@ void XtensaAsmPrinter::EmitConstantPool() {
   if (CP.empty())
     return;
 
- // OutStreamer->EmitRawText("\t.text");
+  // OutStreamer->EmitRawText("\t.text");
   OutStreamer->SwitchSection(getObjFileLowering().SectionForGlobal(&F, TM));
   OutStreamer->EmitRawText("\t.literal_position");
   for (unsigned i = 0, e = CP.size(); i != e; ++i) {
@@ -56,8 +70,7 @@ void XtensaAsmPrinter::EmitConstantPool() {
         str += CVal->getValue().toString(10, true);
       }
 
-
-      OutStreamer->EmitRawText(str);   
+      OutStreamer->EmitRawText(str);
     }
   }
 }
@@ -91,9 +104,9 @@ void XtensaAsmPrinter::EmitMachineConstantPoolValue(
     assert(ACPV->isExtSymbol() && "unrecognized constant pool value");
     XtensaConstantPoolSymbol *XtensaSym = cast<XtensaConstantPoolSymbol>(ACPV);
     const char *Sym = XtensaSym->getSymbol();
-	// TODO it's a trick to distinguish static references and generated rodata references
-	// Some clear method required
-    //if (strchr(Sym, '.'))
+    // TODO it's a trick to distinguish static references and generated rodata
+    // references Some clear method required
+    // if (strchr(Sym, '.'))
     {
       char buf[256];
       if (XtensaSym->isPrivateLinkage())
@@ -101,9 +114,9 @@ void XtensaAsmPrinter::EmitMachineConstantPoolValue(
       else
         sprintf(buf, "%s", Sym);
       MCSym = GetExternalSymbolSymbol(buf);
-    } 
-//    else
-//      MCSym = GetExternalSymbolSymbol(Sym);
+    }
+    //    else
+    //      MCSym = GetExternalSymbolSymbol(Sym);
   }
 
   // Create an MCSymbol for the reference.
@@ -118,7 +131,7 @@ void XtensaAsmPrinter::EmitMachineConstantPoolValue(
   str += MCSym->getName();
 
   StringRef modifier = ACPV->getModifierText();
-  str += modifier; 
+  str += modifier;
 
   OutStreamer->EmitRawText(str);
 }

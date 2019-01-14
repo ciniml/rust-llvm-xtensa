@@ -1,3 +1,17 @@
+//===- XtensaISelLowering.h - Xtensa DAG Lowering Interface ---------*- C++ -*-===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===--------------------------------------------------------------------------===//
+//
+// This file defines the interfaces that Xtensa uses to lower LLVM code into a
+// selection DAG.
+//
+//===--------------------------------------------------------------------------===//
+
 #ifndef LLVM_LIB_TARGET_XTENSA_XTENSAISELLOWERING_H
 #define LLVM_LIB_TARGET_XTENSA_XTENSAISELLOWERING_H
 
@@ -80,7 +94,7 @@ enum {
   MOVS,
   MOVSP,
 
-  //shift
+  // shift
   SHL,
   SRA,
   SRL,
@@ -205,8 +219,8 @@ private:
   SDValue lowerVAARG(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerVACOPY(SDValue Op, SelectionDAG &DAG) const;
   //  SDValue lowerDYNAMIC_STACKALLOC(SDValue Op, SelectionDAG &DAG) const;
-//  SDValue lowerBITCAST(SDValue Op, SelectionDAG &DAG) const;
-//  SDValue lowerOR(SDValue Op, SelectionDAG &DAG) const;
+  //  SDValue lowerBITCAST(SDValue Op, SelectionDAG &DAG) const;
+  //  SDValue lowerOR(SDValue Op, SelectionDAG &DAG) const;
   //  SDValue lowerATOMIC_FENCE(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerSTACKSAVE(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerSTACKRESTORE(SDValue Op, SelectionDAG &DAG) const;
@@ -217,15 +231,15 @@ private:
   SDValue lowerShiftRightParts(SDValue Op, SelectionDAG &DAG, bool IsSRA) const;
 
   SDValue getTargetNode(SDValue Op, SelectionDAG &DAG, unsigned Flag) const;
-//  SDValue getAddrNonPIC(SDValue Op, SelectionDAG &DAG) const;
+  //  SDValue getAddrNonPIC(SDValue Op, SelectionDAG &DAG) const;
   SDValue getAddrPIC(SDValue Op, SelectionDAG &DAG) const;
 
   // Implement EmitInstrWithCustomInserter for individual operation types.
   MachineBasicBlock *emitCALL(MachineInstr *MI, MachineBasicBlock *BB) const;
   MachineBasicBlock *emitSelectCC(MachineInstr &MI,
                                   MachineBasicBlock *BB) const;
-  MachineBasicBlock *emitAtomicCmpSwap(MachineInstr &MI,
-                                  MachineBasicBlock *BB, int isByteOperand) const;
+  MachineBasicBlock *emitAtomicCmpSwap(MachineInstr &MI, MachineBasicBlock *BB,
+                                       int isByteOperand) const;
   MachineBasicBlock *emitAtomicRMW(MachineInstr &MI, MachineBasicBlock *BB,
                                    bool isByteOperand, unsigned Opcode,
                                    bool inv, bool minmax) const;
@@ -233,8 +247,7 @@ private:
                                    unsigned Opcode, bool inv,
                                    bool minmax) const;
 
-  CCAssignFn *CCAssignFnForCall(CallingConv::ID CC,
-                                                      bool isVarArg) const;
+  CCAssignFn *CCAssignFnForCall(CallingConv::ID CC, bool isVarArg) const;
 
   unsigned getInlineAsmMemConstraint(StringRef ConstraintCode) const override {
     if (ConstraintCode == "R")

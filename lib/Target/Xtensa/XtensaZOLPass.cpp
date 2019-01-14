@@ -1,3 +1,12 @@
+//===- XtensaZOLPass.cpp - Xtensa LLVM Zero Overhead Loop Pass ---------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===-------------------------------------------------------------------===//
+
 #include "Xtensa.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/LoopPass.h"
@@ -48,11 +57,12 @@ public:
 
     errs() << "Loop counter = " << TC << "\n\n";
 
-    for (Loop::block_iterator bbi = L->block_begin(); bbi != L->block_end(); ++bbi) {
+    for (Loop::block_iterator bbi = L->block_begin(); bbi != L->block_end();
+         ++bbi) {
       BasicBlock *bb = *bbi;
       for (BasicBlock::iterator instr_iter = bb->begin();
            instr_iter != bb->end(); ++instr_iter) {
-        Instruction * instr = &*instr_iter;
+        Instruction *instr = &*instr_iter;
         if (SE->isSCEVable(instr->getType())) {
           const SCEV *scev = SE->getSCEV(instr);
           instr->print(errs());
@@ -60,10 +70,10 @@ public:
           scev->print(errs());
           errs() << "\n";
         }
-	  }
-	}
+      }
+    }
 
-      return false;
+    return false;
   }
 
   /// This transformation requires natural loop information & requires that

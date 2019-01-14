@@ -1,6 +1,13 @@
-//===----------------------------------------------------------------------===//
+//===- XtensaCallingConv.td - Calling Conventions for Xtensa ----*- tablegen -*-===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===---------------------------------------------------------------------------===//
 // This describes the calling conventions for the Xtensa ABI.
-//===----------------------------------------------------------------------===//
+//===---------------------------------------------------------------------------===//
 
 /// CCIfAlign - Match of the original alignment of the arg
 class CCIfAlign<string Align, CCAction A>:

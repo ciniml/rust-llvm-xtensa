@@ -1,9 +1,18 @@
+//===- XtensaSizeReductionPass.cpp - Xtensa Size Reduction ----------------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+
 #include "Xtensa.h"
 #include "XtensaInstrInfo.h"
 #include "XtensaSubtarget.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen//MachineInstrBuilder.h"
+#include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Target/TargetMachine.h"
 
@@ -38,8 +47,7 @@ private:
 char XtensaSizeReduce::ID = 0;
 const XtensaInstrInfo *XtensaSizeReduce::XtensaII;
 
-bool XtensaSizeReduce::ReduceMI(
-    const MachineBasicBlock::instr_iterator &MII) {
+bool XtensaSizeReduce::ReduceMI(const MachineBasicBlock::instr_iterator &MII) {
   MachineInstr *MI = &*MII;
   MachineBasicBlock &MBB = *MI->getParent();
   unsigned Opcode = MI->getOpcode();
@@ -62,12 +70,11 @@ bool XtensaSizeReduce::ReduceMI(
       // Transfer MI flags.
       MIB.setMIFlags(MI->getFlags());
       DEBUG(dbgs() << "       to 16-bit: " << *MIB);
-	  NumReduced++;
+      NumReduced++;
       MBB.erase_instr(MI);
       return true;
-    } 
-  }
-  break;
+    }
+  } break;
 
   case Xtensa::S32I: {
     MachineOperand Op0 = MI->getOperand(0);
@@ -88,14 +95,13 @@ bool XtensaSizeReduce::ReduceMI(
       DEBUG(dbgs() << "       to 16-bit: " << *MIB);
       NumReduced++;
       MBB.erase_instr(MI);
-	  return true;
-    } 
-	
-  }
-    break; 
+      return true;
+    }
 
-    default:
-    break;	   
+  } break;
+
+  default:
+    break;
   }
 
   return false;

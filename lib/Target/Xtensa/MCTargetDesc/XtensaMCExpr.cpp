@@ -1,4 +1,4 @@
-//===-- XtensaMCExpr.cpp - Xtensa specific MC expression classes ------------===//
+//===-- XtensaMCExpr.cpp - Xtensa specific MC expression classes ----------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -8,7 +8,7 @@
 //===----------------------------------------------------------------------===//
 //
 // This file contains the implementation of the assembly expression modifiers
-// accepted by the Xtensa architecture 
+// accepted by the Xtensa architecture
 //
 //===----------------------------------------------------------------------===//
 
@@ -26,7 +26,7 @@ using namespace llvm;
 #define DEBUG_TYPE "xtensamcexpr"
 
 const XtensaMCExpr *XtensaMCExpr::create(const MCExpr *Expr, VariantKind Kind,
-                                       MCContext &Ctx) {
+                                         MCContext &Ctx) {
   return new (Ctx) XtensaMCExpr(Expr, Kind);
 }
 
@@ -40,8 +40,8 @@ void XtensaMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
 }
 
 bool XtensaMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
-                                            const MCAsmLayout *Layout,
-                                            const MCFixup *Fixup) const {
+                                             const MCAsmLayout *Layout,
+                                             const MCFixup *Fixup) const {
   return getSubExpr()->evaluateAsRelocatable(Res, Layout, Fixup);
 }
 
@@ -50,8 +50,8 @@ void XtensaMCExpr::visitUsedExpr(MCStreamer &Streamer) const {
 }
 
 XtensaMCExpr::VariantKind XtensaMCExpr::getVariantKindForName(StringRef name) {
-  return StringSwitch<XtensaMCExpr::VariantKind>(name)
-      .Default(VK_Xtensa_Invalid);
+  return StringSwitch<XtensaMCExpr::VariantKind>(name).Default(
+      VK_Xtensa_Invalid);
 }
 
 StringRef XtensaMCExpr::getVariantKindName(VariantKind Kind) {
@@ -60,5 +60,3 @@ StringRef XtensaMCExpr::getVariantKindName(VariantKind Kind) {
     llvm_unreachable("Invalid ELF symbol kind");
   }
 }
-
-

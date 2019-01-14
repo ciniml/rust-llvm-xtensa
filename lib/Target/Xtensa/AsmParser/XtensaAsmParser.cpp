@@ -1,12 +1,11 @@
-//===-- XtensaAsmParser.cpp - Parse Xtensa assembly to MCInst instructions
-//--===//
+//===- XtensaAsmParser.cpp - Parse Xtensa assembly to MCInst instructions -------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
 // This file is distributed under the University of Illinois Open Source
 // License. See LICENSE.TXT for details.
 //
-//===----------------------------------------------------------------------===//
+//===----------------------------------------------------------------------------===//
 
 #include "MCTargetDesc/XtensaMCTargetDesc.h"
 #include "llvm/ADT/STLExtras.h"
