@@ -514,9 +514,6 @@ static SDValue performMADD_MSUBCombine(SDNode *ROOTNode, SelectionDAG &CurDAG,
   if (!Mult.hasOneUse())
     return SDValue();
 
-  SDValue MultLHS = Mult->getOperand(0);
-  SDValue MultRHS = Mult->getOperand(1);
-
   SDLoc DL(ROOTNode);
 
   bool IsAdd = ROOTNode->getOpcode() == ISD::FADD;
@@ -615,9 +612,6 @@ static unsigned addLiveIn(MachineFunction &MF, unsigned PReg,
 static bool CC_Xtensa_Custom(unsigned ValNo, MVT ValVT, MVT LocVT,
                              CCValAssign::LocInfo LocInfo,
                              ISD::ArgFlagsTy ArgFlags, CCState &State) {
-  const XtensaSubtarget &Subtarget = static_cast<const XtensaSubtarget &>(
-      State.getMachineFunction().getSubtarget());
-
   static const MCPhysReg IntRegs[] = {Xtensa::a2, Xtensa::a3, Xtensa::a4,
                                       Xtensa::a5, Xtensa::a6, Xtensa::a7};
 
@@ -649,8 +643,7 @@ static bool CC_Xtensa_Custom(unsigned ValNo, MVT ValVT, MVT LocVT,
       Reg = State.AllocateReg(IntRegs);
     LocVT = MVT::i32;
   } else if (ValVT == MVT::f64) {
-    // Allocate int register and shadow next int register. If first
-    // available register is Mips::A1 or Mips::A3, shadow it too.
+    // Allocate int register and shadow next int register. 
     Reg = State.AllocateReg(IntRegs);
     if (Reg == Xtensa::a3 || Reg == Xtensa::a5 || Reg == Xtensa::a7)
       Reg = State.AllocateReg(IntRegs);
@@ -935,8 +928,6 @@ XtensaTargetLowering::LowerCall(CallLoweringInfo &CLI,
   MachineFunction &MF = DAG.getMachineFunction();
   EVT PtrVT = getPointerTy(DAG.getDataLayout());
   const TargetFrameLowering *TFL = Subtarget.getFrameLowering();
-  MachineFrameInfo &MFI = MF.getFrameInfo();
-  const XtensaSubtarget &STI = MF.getSubtarget<XtensaSubtarget>();
 
   // Xtensa target does not yet support tail call optimization.
   isTailCall = false;
@@ -1291,9 +1282,6 @@ SDValue XtensaTargetLowering::lowerSELECT_CC(SDValue Op,
   ISD::CondCode CC = cast<CondCodeSDNode>(Op->getOperand(4))->get();
   SDValue TargetCC = DAG.getConstant(CC, DL, MVT::i32);
 
-  SDVTList VTs = DAG.getVTList(Op.getValueType(), MVT::Glue);
-  SDValue Ops[] = {LHS, RHS, TrueV, FalseV, TargetCC};
-
   // Wrap select nodes
   if (LHS.getValueType() == MVT::f32)
     return DAG.getNode(XtensaISD::SELECT_CC_FP, DL, TrueV.getValueType(), LHS,
@@ -1335,7 +1323,6 @@ SDValue XtensaTargetLowering::lowerSETCC(SDValue Op, SelectionDAG &DAG) const {
   // Expand to target SELECT_CC
   SDValue TrueV = DAG.getConstant(1, DL, Op.getValueType());
   SDValue FalseV = DAG.getConstant(0, DL, Op.getValueType());
-  SDVTList VTs = DAG.getVTList(Op.getValueType(), MVT::Glue);
 
   if (LHS.getValueType() == MVT::f32)
     return DAG.getNode(XtensaISD::SELECT_CC_FP, DL, TrueV.getValueType(), LHS,
@@ -1506,7 +1493,6 @@ SDValue XtensaTargetLowering::lowerGlobalTLSAddress(GlobalAddressSDNode *GA,
 SDValue XtensaTargetLowering::lowerBlockAddress(BlockAddressSDNode *Node,
                                                 SelectionDAG &DAG) const {
   const BlockAddress *BA = Node->getBlockAddress();
-  int64_t Offset = Node->getOffset();
   EVT PtrVT = getPointerTy(DAG.getDataLayout());
 
   //  SDValue TBA = DAG.getTargetBlockAddress(BA, PtrVT, Offset);
@@ -1526,12 +1512,12 @@ SDValue XtensaTargetLowering::lowerBR_JT(SDValue Op, SelectionDAG &DAG) const {
   SDValue Index = Op.getOperand(2);
   SDLoc DL(Op);
   JumpTableSDNode *JT = cast<JumpTableSDNode>(Table);
-  unsigned JTI = JT->getIndex();
+  //unsigned JTI = JT->getIndex();
   MachineFunction &MF = DAG.getMachineFunction();
   const MachineJumpTableInfo *MJTI = MF.getJumpTableInfo();
 
   SDValue TargetJT = DAG.getTargetJumpTable(JT->getIndex(), MVT::i32);
-  unsigned NumEntries = MJTI->getJumpTables()[JTI].MBBs.size();
+  //unsigned NumEntries = MJTI->getJumpTables()[JTI].MBBs.size();
   //  printf("--- Index = %d  NumEntries = %d\n", JTI, NumEntries);
 
   const DataLayout &TD = DAG.getDataLayout();
@@ -1569,7 +1555,7 @@ SDValue XtensaTargetLowering::lowerJumpTable(JumpTableSDNode *JT,
   //  printf("---- lowerJumpTable -------\n");
   SDLoc DL(JT);
   EVT PtrVt = getPointerTy(DAG.getDataLayout());
-  SDValue Result = DAG.getTargetJumpTable(JT->getIndex(), PtrVt);
+  //SDValue Result = DAG.getTargetJumpTable(JT->getIndex(), PtrVt);
 
   // Create a constant pool entry for the callee address
   XtensaConstantPoolValue *CPV =
@@ -1689,8 +1675,6 @@ SDValue XtensaTargetLowering::lowerVASTART(SDValue Op,
 }
 
 SDValue XtensaTargetLowering::lowerVAARG(SDValue Op, SelectionDAG &DAG) const {
-  MachineFunction &MF = DAG.getMachineFunction();
-  XtensaFunctionInfo *XtensaFI = MF.getInfo<XtensaFunctionInfo>();
   SDNode *Node = Op.getNode();
   EVT VT = Node->getValueType(0);
   SDValue InChain = Node->getOperand(0);
@@ -1840,8 +1824,7 @@ SDValue XtensaTargetLowering::lowerDYNAMIC_STACKALLOC(SDValue Op,
                                                       SelectionDAG &DAG) const {
   SDValue Chain = Op.getOperand(0); // Legalize the chain.
   SDValue Size = Op.getOperand(1);  // Legalize the size.
-  unsigned Align = cast<ConstantSDNode>(Op.getOperand(2))->getZExtValue();
-  unsigned StackAlign = Subtarget.getFrameLowering()->getStackAlignment();
+  //unsigned StackAlign = Subtarget.getFrameLowering()->getStackAlignment();
   EVT VT = Size->getValueType(0);
   SDLoc DL(Op);
 
@@ -1908,7 +1891,6 @@ SDValue XtensaTargetLowering::lowerShiftRightParts(SDValue Op,
     SDValue ShiftRightLo2 =
         DAG.getNode(XtensaISD::SRA, DL, VT, Hi, SetShiftRight3);
 
-    SDValue SetShiftRight4 = DAG.getNode(XtensaISD::SSR, DL, MVT::Glue, Shamt);
     SDValue ShiftRightHi2 =
         DAG.getNode(ISD::SRA, DL, VT, Hi, DAG.getConstant(31, DL, VT));
 
@@ -2145,8 +2127,8 @@ void XtensaTargetLowering::LowerAsmOperandForConstraint(
 // Call pseduo ops for ABI compliant calls (output is always ra)
 MachineBasicBlock *XtensaTargetLowering::emitCALL(MachineInstr *MI,
                                                   MachineBasicBlock *BB) const {
-  const TargetInstrInfo *TII = BB->getParent()->getSubtarget().getInstrInfo();
-  DebugLoc DL = MI->getDebugLoc();
+  //const TargetInstrInfo *TII = BB->getParent()->getSubtarget().getInstrInfo();
+  //DebugLoc DL = MI->getDebugLoc();
   /* TODO
     unsigned jump;
     unsigned RA;
@@ -2838,40 +2820,6 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
   DebugLoc DL = MI.getDebugLoc();
 
   switch (MI.getOpcode()) {
-  case Xtensa::LA: // TODO Now Address Pseudo don't needed because all address
-                   // operations
-                   //   works by means of Constant Pool
-  {
-    MachineOperand &DST = MI.getOperand(0);
-    MachineOperand &ADDR = MI.getOperand(1);
-
-    //    MachineInstrBuilder Bld =
-    //        BuildMI(*MBB, MI, DL, TII.get(Xtensa::L32R), DST.getReg());
-
-    switch (ADDR.getType()) {
-    case MachineOperand::MO_BlockAddress: {
-      const BlockAddress *BA = ADDR.getBlockAddress();
-      BasicBlock *BB = BA->getBasicBlock();
-    } break;
-    default:
-      llvm_unreachable("Unexpected LA address operand");
-    }
-
-    //    Bld.addJumpTableIndex(ADDR.getImm());
-    MI.eraseFromParent();
-
-#if 0
-       MachineConstantPool* CP = MBB->getParent();
-#endif
-    //        unsigned Idx = CP->getConstantPoolIndex(C, 4);
-
-    //     return DAG.getLoad(getPointerTy(DAG.getDataLayout()), DL,
-    //       DAG.getEntryNode(), CP, MachinePointerInfo(), false,
-    //       false, false, 0);
-
-    return MBB;
-  }
-
   case Xtensa::SELECT_CC_FP_FP:
   case Xtensa::SELECT_CC_FP_INT:
   case Xtensa::SELECT_CC_INT_FP:
