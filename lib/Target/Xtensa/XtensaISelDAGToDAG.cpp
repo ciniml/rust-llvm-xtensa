@@ -91,8 +91,6 @@ class XtensaDAGToDAGISel : public SelectionDAGISel {
 
     // if Address is FI, get the TargetFrameIndex.
     if (FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
-      MachineFrameInfo &MFI = MF->getFrameInfo();
-
       Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), ValTy);
       Offset = CurDAG->getTargetConstant(0, SDLoc(Addr), ValTy);
 
@@ -178,7 +176,6 @@ class XtensaDAGToDAGISel : public SelectionDAGISel {
     }
 
     // Addresses of the form FI+const or FI|const
-    bool Valid = false;
     if (CurDAG->isBaseWithConstantOffset(Addr)) {
       ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1));
       int64_t OffsetVal = CN->getSExtValue();
@@ -218,7 +215,7 @@ class XtensaDAGToDAGISel : public SelectionDAGISel {
     }
     if (CurDAG->isBaseWithConstantOffset(Addr)) {
       ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1));
-      int64_t OffsetVal = CN->getSExtValue();
+      //int64_t OffsetVal = CN->getSExtValue();
 
       // If the first operand is a FI, get the TargetFI Node
       if (FrameIndexSDNode *FIN =
@@ -472,7 +469,7 @@ void XtensaDAGToDAGISel::Select(SDNode *Node) {
     return;
   }
 
-  unsigned Opcode = Node->getOpcode();
+  //unsigned Opcode = Node->getOpcode();
   /*
   switch (Opcode) {
   case ISD::FrameIndex: {
@@ -531,9 +528,9 @@ bool XtensaDAGToDAGISel::SelectInlineAsmMemoryOperand(
 }
 
 void XtensaDAGToDAGISel::processFunctionAfterISel(MachineFunction &MF) {
-  for (auto &MBB : MF) {
+  /*for (auto &MBB : MF) {
     for (auto &I : MBB) {
       // TODO something useful for future
     }
-  }
+  }*/
 }

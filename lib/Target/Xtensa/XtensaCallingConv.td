@@ -39,7 +39,7 @@ def RetCCW_Xtensa: CallingConv<[
 //===----------------------------------------------------------------------===//
 // Xtensa argument calling conventions
 //===----------------------------------------------------------------------===//
-def CC_Xtensa: CallingConv<[
+/*def CC_Xtensa: CallingConv<[
   //Always assign the sret pointer to the first arg reg
   CCIfSRet<CCAssignToReg<[a2]>>,
   //Promote small int types to i32
@@ -76,7 +76,7 @@ def CC_Xtensa_VAR : CallingConv<[
 
   // Other arguments are passed in 8-byte-aligned 8-byte stack slots.
   CCIfType<[i32, i64, f32, f64], CCAssignToStack<4, 4>>
-]>;
+]>;*/
 
 //===----------------------------------------------------------------------===//
 // Callee-saved register lists.

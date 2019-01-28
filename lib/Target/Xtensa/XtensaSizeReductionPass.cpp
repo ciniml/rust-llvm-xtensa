@@ -143,7 +143,6 @@ bool XtensaSizeReduce::runOnMachineFunction(MachineFunction &MF) {
   return Modified;
 }
 
-/// Returns an instance of the MicroMips size reduction pass.
 FunctionPass *llvm::createXtensaSizeReductionPass() {
   return new XtensaSizeReduce();
 }

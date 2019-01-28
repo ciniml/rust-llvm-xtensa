@@ -77,8 +77,8 @@ void XtensaAsmPrinter::EmitConstantPool() {
 
 void XtensaAsmPrinter::EmitMachineConstantPoolValue(
     MachineConstantPoolValue *MCPV) {
-  const DataLayout &DL = getDataLayout();
-  int Size = DL.getTypeAllocSize(MCPV->getType());
+  //const DataLayout &DL = getDataLayout();
+  //int Size = DL.getTypeAllocSize(MCPV->getType());
 
   XtensaConstantPoolValue *ACPV = static_cast<XtensaConstantPoolValue *>(MCPV);
 

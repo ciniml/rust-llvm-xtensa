@@ -42,16 +42,16 @@ public:
     if (skipLoop(L))
       return false;
 
-    AliasAnalysis *AA = &getAnalysis<AAResultsWrapperPass>().getAAResults();
+    /*AliasAnalysis *AA = &getAnalysis<AAResultsWrapperPass>().getAAResults();
     DominatorTree *DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
-    LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+    LoopInfo *LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();*/
     ScalarEvolution *SE = &getAnalysis<ScalarEvolutionWrapperPass>().getSE();
     //    TargetLibraryInfo *TLI =
     //        &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
     //    const TargetTransformInfo *TTI =
     //        &getAnalysis<TargetTransformInfoWrapperPass>().getTTI(
     //            *L->getHeader()->getParent());
-    const DataLayout *DL = &L->getHeader()->getModule()->getDataLayout();
+    //const DataLayout *DL = &L->getHeader()->getModule()->getDataLayout();
 
     unsigned TC = SE->getSmallConstantMaxTripCount(L);
 

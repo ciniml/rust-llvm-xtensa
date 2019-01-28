@@ -19,7 +19,7 @@ using namespace llvm;
 
 #define DEBUG_TYPE "xtensa-branch-select"
 
-STATISTIC(NumExpanded, "Number of branches expanded to long format");
+//STATISTIC(NumExpanded, "Number of branches expanded to long format");
 
 namespace llvm {
 void initializeXtensaBSelPass(PassRegistry &);

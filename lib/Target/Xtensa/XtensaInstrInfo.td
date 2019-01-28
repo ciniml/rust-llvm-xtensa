@@ -349,13 +349,6 @@ def NSAU : RRR_Inst<0x00, 0x00, 0x04, (outs AR:$t), (ins AR:$s),
   let r = 0xF;
 }
 
-// LA is pseudo instruction for loading address from literal pool by L32R
-let usesCustomInserter = 1 in
-{
-  def LA: Pseudo<(outs AR:$dst), (ins imm32:$label),
-                       "# LA PSEUDO!", []>;
-}
-
 // FrameIndexes are legalized when they are operands from load/store
 // instructions. The same not happens for stack address copies, so an
 // add op with mem ComplexPattern is used and the stack address copy
@@ -365,13 +358,6 @@ let usesCustomInserter = 1 in
 
 let isCodeGenOnly = 1, mayLoad = 1 in
 {
-/*
-  def LEA_ADD_N : RRRN_Inst<0x0A, (outs AR:$t), (ins mem32n:$addr),
-       "addi.n\t$t, $addr",
-       [(set AR:$t, addrn:$addr)]>
-  {
-  }  
-*/
 
   def LEA_ADD : RRI8_Inst<0x02, (outs AR:$t), (ins mem32:$addr),
        "addi\t$t, $addr",

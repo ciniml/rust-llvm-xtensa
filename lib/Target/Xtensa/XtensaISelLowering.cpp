@@ -592,7 +592,7 @@ SDValue XtensaTargetLowering::PerformDAGCombine(SDNode *N,
 //===----------------------------------------------------------------------===//
 //  Lower helper functions
 //===----------------------------------------------------------------------===//
-
+#if 0
 // addLiveIn - This helper function adds the specified physical register to
 // the MachineFunction as a live in value.  It also creates a corresponding
 // virtual register for it.
@@ -602,7 +602,7 @@ static unsigned addLiveIn(MachineFunction &MF, unsigned PReg,
   MF.getRegInfo().addLiveIn(PReg, VReg);
   return VReg;
 }
-
+#endif
 //===----------------------------------------------------------------------===//
 // Calling conventions
 //===----------------------------------------------------------------------===//

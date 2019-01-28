@@ -12,7 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "mccodeemitter"
-#include "MCTargetDesc/XtensaMCFixups.h"
+#include "MCTargetDesc/XtensaMCFixupKinds.h"
 #include "MCTargetDesc/XtensaMCTargetDesc.h"
 #include "llvm/MC/MCCodeEmitter.h"
 #include "llvm/MC/MCContext.h"
@@ -65,15 +65,7 @@ private:
   unsigned getBranchTargetEncoding(const MCInst &MI, unsigned int OpNum,
                                    SmallVectorImpl<MCFixup> &Fixups,
                                    const MCSubtargetInfo &STI) const {
-    const MCOperand &MO = MI.getOperand(OpNum);
-    // TODO: do we need to sign extend explicitly?
-    if (MO.isImm())
-      return MO.getImm() << 1;
-    // Branch target is expr add fixup
-    Fixups.push_back(MCFixup::create(0, MO.getExpr(),
-                                     (MCFixupKind)Xtensa::fixup_xtensa_brlo));
-    Fixups.push_back(MCFixup::create(0, MO.getExpr(),
-                                     (MCFixupKind)Xtensa::fixup_xtensa_brhi));
+
     return 0;
   }
 
@@ -97,10 +89,6 @@ private:
     llvm_unreachable("Branch with no immediate field");
   }
 
-  // Operand OpNum of MI needs a PC-relative fixup of kind Kind at
-  // Offset bytes from the start of MI.  Add the fixup to Fixups
-  // and return the in-place addend, which since we're a RELA target
-  // is always 0.
   unsigned getPCRelEncoding(const MCInst &MI, unsigned int OpNum,
                             SmallVectorImpl<MCFixup> &Fixups, unsigned Kind,
                             int64_t Offset) const;
@@ -108,7 +96,7 @@ private:
   unsigned getCallEncoding(const MCInst &MI, unsigned int OpNum,
                            SmallVectorImpl<MCFixup> &Fixups,
                            const MCSubtargetInfo &STI) const {
-    return getPCRelEncoding(MI, OpNum, Fixups, Xtensa::fixup_xtensa_call, 0);
+    return 0;
   }
 };
 } // namespace
@@ -156,10 +144,6 @@ unsigned XtensaMCCodeEmitter::getPCRelEncoding(const MCInst &MI,
 
   const MCExpr *Expr = MO.getExpr();
   if (Offset) {
-    // The operand value is relative to the start of MI, but the fixup
-    // is relative to the operand field itself, which is Offset bytes
-    // into MI.  Add Offset to the relocation value to cancel out
-    // this difference.
     const MCExpr *OffsetExpr = MCConstantExpr::create(Offset, Ctx);
     Expr = MCBinaryExpr::createAdd(Expr, OffsetExpr, Ctx);
   }

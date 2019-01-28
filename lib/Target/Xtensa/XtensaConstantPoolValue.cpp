@@ -26,13 +26,13 @@ XtensaConstantPoolValue::XtensaConstantPoolValue(
     Type *Ty, unsigned id, XtensaCP::XtensaCPKind kind, bool addCurrentAddress,
     XtensaCP::XtensaCPModifier modifier)
     : MachineConstantPoolValue(Ty), LabelId(id), Kind(kind),
-      AddCurrentAddress(addCurrentAddress), Modifier(modifier) {}
+      Modifier(modifier), AddCurrentAddress(addCurrentAddress) {}
 
 XtensaConstantPoolValue::XtensaConstantPoolValue(
     LLVMContext &C, unsigned id, XtensaCP::XtensaCPKind kind,
     bool addCurrentAddress, XtensaCP::XtensaCPModifier modifier)
     : MachineConstantPoolValue((Type *)Type::getInt32Ty(C)), LabelId(id),
-      Kind(kind), AddCurrentAddress(addCurrentAddress), Modifier(modifier) {}
+      Kind(kind), Modifier(modifier), AddCurrentAddress(addCurrentAddress) {}
 
 XtensaConstantPoolValue::~XtensaConstantPoolValue() {}
 

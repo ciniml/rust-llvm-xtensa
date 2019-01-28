@@ -45,7 +45,7 @@ XtensaSubtarget::XtensaSubtarget(const Triple &TT, const std::string &CPU,
       UseSoftFloat(false), HasF(true) /* TODO */
 //	  UseSmallSection(false), UseSoftFloat(true), HasF(false) /* TODO */
 {}
-
+#if 0
 // Return true if GV binds locally under reloc model RM.
 static bool bindsLocally(const GlobalValue *GV, Reloc::Model RM) {
   // For non-PIC, all symbols bind locally.
@@ -54,3 +54,4 @@ static bool bindsLocally(const GlobalValue *GV, Reloc::Model RM) {
 
   return GV->hasLocalLinkage() || !GV->hasDefaultVisibility();
 }
+#endif

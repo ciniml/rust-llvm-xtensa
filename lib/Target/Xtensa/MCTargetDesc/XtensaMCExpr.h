@@ -46,14 +46,7 @@ public:
     return getSubExpr()->findAssociatedFragment();
   }
 
-  // There are no TLS XtensaMCExprs at the moment.
   void fixELFSymbolsInTLSFixups(MCAssembler &Asm) const override {}
-
-  static bool classof(const MCExpr *E) {
-    return E->getKind() == MCExpr::Target;
-  }
-
-  static bool classof(const XtensaMCExpr *) { return true; }
 
   static VariantKind getVariantKindForName(StringRef name);
   static StringRef getVariantKindName(VariantKind Kind);

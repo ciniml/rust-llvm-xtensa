@@ -45,9 +45,6 @@ protected:
 
   XtensaArchEnum XtensaArchVersion;
 
-  bool UseSoftFloat;
-  bool HasF;
-
 private:
   Triple TargetTriple;
   XtensaInstrInfo InstrInfo;
@@ -55,6 +52,8 @@ private:
   SelectionDAGTargetInfo TSInfo;
   XtensaFrameLowering FrameLowering;
   bool UseSmallSection;
+  bool UseSoftFloat;
+  bool HasF;
 
   XtensaSubtarget &initializeSubtargetDependencies(StringRef CPU, StringRef FS);
 

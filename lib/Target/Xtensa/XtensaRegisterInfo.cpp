@@ -42,7 +42,7 @@ XtensaRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
     return CSRWE_Xtensa_SaveList; // CSRW_Xtensa_SaveList ?
   else if (Subtarget.isESP8266())
     return CSR_Xtensa_SaveList;
-  else if (Subtarget.isESP32())
+  else //(Subtarget.isESP32())
     return CSR_Xtensa_SaveList;
 }
 
@@ -78,7 +78,6 @@ void XtensaRegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
   MachineInstr &MI = *II;
   MachineFunction &MF = *MI.getParent()->getParent();
   MachineFrameInfo &MFI = MF.getFrameInfo();
-  XtensaFunctionInfo *XtensaFI = MF.getInfo<XtensaFunctionInfo>();
 
   const std::vector<CalleeSavedInfo> &CSI = MFI.getCalleeSavedInfo();
   int MinCSFI = 0;
