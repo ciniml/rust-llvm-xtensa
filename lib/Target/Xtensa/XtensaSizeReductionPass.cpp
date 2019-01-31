@@ -122,7 +122,7 @@ bool XtensaSizeReduce::ReduceMBB(MachineBasicBlock &MBB) {
     if (MI->isBundle() || MI->isTransient())
       continue;
 
-    // Try to reduce 32-bit instruction into 16-bit instruction
+    // Try to reduce 24-bit instruction into 16-bit instruction
     Modified |= ReduceMI(MII);
   }
 

@@ -1,4 +1,4 @@
-//===-- XtensaMCObjectWriter.cpp - Xtensa ELF writer --------------------===//
+//===-- XtensaMCObjectWriter.cpp - Xtensa ELF writer ----------------------===//
 //
 //                     The LLVM Compiler Infrastructure
 //

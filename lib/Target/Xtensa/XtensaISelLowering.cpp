@@ -40,26 +40,12 @@ static const MCPhysReg XtensaIntRegs[16] = {
 static const MCPhysReg XtensaArgRegs[6] = {Xtensa::a2, Xtensa::a3, Xtensa::a4,
                                            Xtensa::a5, Xtensa::a6, Xtensa::a7};
 
-/*
-void XtensaTargetObjectFile::Initialize(MCContext &Ctx, const TargetMachine &TM)
-{
-  TargetLoweringObjectFileELF::Initialize(Ctx, TM);
-  InitializeELF(TM.Options.UseInitArray);
-}
-*/
-
 // Return true if we must use long (in fact, indirect) function call.
 // It's simplified version, production implimentation must
 // resolve a functions in ROM (usually glibc functions)
 static bool isLongCall(const char *str) {
+  // Currently always use long calls
   return true;
-#if 0
-  std::string name(str);
-  if (name.find("__") == 0 || name.find("str") == 0 || name.find("mem") == 0 ||
-      name == "malloc" || name == "calloc" || name == "free")
-    return true;
-  return false;
-#endif
 }
 
 // The calling conventions in XtensaCallingConv.td are described in terms of the
@@ -376,30 +362,15 @@ unsigned XtensaTargetLowering::getVaListSizeInBits(const DataLayout &DL) const {
 //===----------------------------------------------------------------------===//
 // Inline asm support
 //===----------------------------------------------------------------------===//
-
 TargetLowering::ConstraintType
 XtensaTargetLowering::getConstraintType(StringRef Constraint) const {
   if (Constraint.size() == 1) {
     switch (Constraint[0]) {
-    case 'a': // Address register
-    case 'd': // Data register (equivalent to 'r')
-    case 'f': // Floating-point register
-    case 'r': // General-purpose register
+    case 'a':
+    case 'd':
+    case 'f':
+    case 'r':
       return C_RegisterClass;
-
-    case 'Q': // Memory with base and unsigned 12-bit displacement
-    case 'R': // Likewise, plus an index
-    case 'S': // Memory with base and signed 20-bit displacement
-    case 'T': // Likewise, plus an index
-    case 'm': // Equivalent to 'T'.
-      return C_Memory;
-
-    case 'I': // Unsigned 8-bit constant
-    case 'J': // Unsigned 12-bit constant
-    case 'K': // Signed 16-bit constant
-    case 'L': // Signed 20-bit displacement (on all targets we support)
-    case 'M': // 0x7fffffff
-      return C_Other;
 
     default:
       break;
@@ -424,46 +395,16 @@ XtensaTargetLowering::getSingleConstraintMatchWeight(
     weight = TargetLowering::getSingleConstraintMatchWeight(info, constraint);
     break;
 
-  case 'a': // Address register
-  case 'd': // Data register (equivalent to 'r')
-  case 'r': // General-purpose register
+  case 'a':
+  case 'd':
+  case 'r':
     if (CallOperandVal->getType()->isIntegerTy())
       weight = CW_Register;
     break;
 
-  case 'f': // Floating-point register
+  case 'f':
     if (type->isFloatingPointTy())
       weight = CW_Register;
-    break;
-
-  case 'I': // Unsigned 8-bit constant
-    if (ConstantInt *C = dyn_cast<ConstantInt>(CallOperandVal))
-      if (isUInt<8>(C->getZExtValue()))
-        weight = CW_Constant;
-    break;
-
-  case 'J': // Unsigned 12-bit constant
-    if (ConstantInt *C = dyn_cast<ConstantInt>(CallOperandVal))
-      if (isUInt<12>(C->getZExtValue()))
-        weight = CW_Constant;
-    break;
-
-  case 'K': // Signed 16-bit constant
-    if (ConstantInt *C = dyn_cast<ConstantInt>(CallOperandVal))
-      if (isInt<16>(C->getSExtValue()))
-        weight = CW_Constant;
-    break;
-
-  case 'L': // Signed 20-bit displacement (on all targets we support)
-    if (ConstantInt *C = dyn_cast<ConstantInt>(CallOperandVal))
-      if (isInt<20>(C->getSExtValue()))
-        weight = CW_Constant;
-    break;
-
-  case 'M': // 0x7fffffff
-    if (ConstantInt *C = dyn_cast<ConstantInt>(CallOperandVal))
-      if (C->getZExtValue() == 0x7fffffff)
-        weight = CW_Constant;
     break;
   }
   return weight;
@@ -490,6 +431,21 @@ XtensaTargetLowering::getRegForInlineAsmConstraint(
     }
   }
   return TargetLowering::getRegForInlineAsmConstraint(TRI, Constraint, VT);
+}
+
+/// LowerAsmOperandForConstraint - Lower the specified operand into the Ops
+/// vector.  If it is invalid, don't add anything to Ops.
+void XtensaTargetLowering::LowerAsmOperandForConstraint(
+    SDValue Op, std::string &Constraint, std::vector<SDValue> &Ops,
+    SelectionDAG &DAG) const {
+  SDLoc DL(Op);
+  SDValue Result;
+
+  // Only support length 1 constraints for now.
+  if (Constraint.length() > 1)
+    return;
+
+  TargetLowering::LowerAsmOperandForConstraint(Op, Constraint, Ops, DAG);
 }
 //===----------------------------------------------------------------------===//
 //  DAG Combine functions
@@ -643,7 +599,7 @@ static bool CC_Xtensa_Custom(unsigned ValNo, MVT ValVT, MVT LocVT,
       Reg = State.AllocateReg(IntRegs);
     LocVT = MVT::i32;
   } else if (ValVT == MVT::f64) {
-    // Allocate int register and shadow next int register. 
+    // Allocate int register and shadow next int register.
     Reg = State.AllocateReg(IntRegs);
     if (Reg == Xtensa::a3 || Reg == Xtensa::a5 || Reg == Xtensa::a7)
       Reg = State.AllocateReg(IntRegs);
@@ -746,28 +702,7 @@ SDValue XtensaTargetLowering::LowerFormalArguments(
 
       if (RegVT == MVT::i32) {
         RC = &Xtensa::ARRegClass;
-      }
-      /* TODO
-      else if (RegVT == MVT::i64)
-      {
-        RC = &Xtensa::PairAR64BitRegClass;
-      }
-      else if (RegVT == MVT::f32)
-      {
-        if (Subtarget.hasF())
-          RC = &Xtensa::FP32BitRegClass;
-        else
-            RC = &Xtensa::ARBitRegClass;
-      }
-      else if (RegVT == MVT::f64)
-      {
-        if(Subtarget.hasF())
-          RC = &Xtensa::PairFP64BitRegClass;
-        else
-          RC = &Xtensa::PairAR64BitRegClass;
-      }
-       */
-      else
+      } else
         llvm_unreachable("RegVT not supported by FormalArguments Lowering");
 
       // Transform the arguments stored on
@@ -847,16 +782,6 @@ SDValue XtensaTargetLowering::LowerFormalArguments(
     int FI = MFI.CreateFixedObject(RegSize, VaArgOffset, true);
     XtensaFI->setVarArgsFrameIndex(FI);
 
-    // If saving an odd number of registers then create an extra stack slot to
-    // ensure that the frame pointer is 2*XLEN-aligned, which in turn ensures
-    // offsets to even-numbered registered remain 2*XLEN-aligned.
-    /*
-    if (Idx % 2) {
-      FI = MFI.CreateFixedObject(4, VaArgOffset - RegSize, true);
-      VarArgsSaveSize += 4;
-    }
-        */
-
     // Copy the integer registers that may have been used for passing varargs
     // to the vararg save area.
     for (unsigned I = Idx; I < ArgRegs.size(); ++I, VaArgOffset += RegSize) {
@@ -872,7 +797,6 @@ SDValue XtensaTargetLowering::LowerFormalArguments(
           ->setValue((Value *)nullptr);
       OutChains.push_back(Store);
     }
-    XtensaFI->setVarArgsSaveSize(VarArgsSaveSize);
   }
 
   // All stores are grouped in one node to allow the matching between
@@ -1367,8 +1291,6 @@ SDValue XtensaTargetLowering::lowerImmediate(SDValue Op,
     Type *Ty = Type::getInt32Ty(*DAG.getContext());
     Constant *CV = ConstantInt::get(Ty, value);
     SDValue CP = DAG.getConstantPool(CV, MVT::i32, 0, 0, false);
-    //    return DAG.getLoad(getPointerTy(DAG.getDataLayout()), DL,
-    //                       DAG.getEntryNode(), CP, MachinePointerInfo());
     return CP;
   } else if (Op.getValueType() == MVT::i64) {
     // TODO long constants
@@ -1423,8 +1345,6 @@ SDValue XtensaTargetLowering::lowerGlobalAddress(SDValue Op,
       return TargAddr;
     }
 
-    //    const char *Sym = GV->getName().str().c_str();
-
     bool Priv = GV->isPrivateLinkage(GV->getLinkage());
 
     // Create a constant pool entry for the callee address
@@ -1437,9 +1357,6 @@ SDValue XtensaTargetLowering::lowerGlobalAddress(SDValue Op,
     SDValue CPWrap = getAddrPIC(CPAddr, DAG);
 
     return CPWrap;
-    //        return DAG.getLoad(getPointerTy(DAG.getDataLayout()), DL,
-    //                       DAG.getEntryNode(), CPWrap,
-    //                       MachinePointerInfo());
   }
   llvm_unreachable("invalid global addresses to lower");
 }
@@ -1495,9 +1412,6 @@ SDValue XtensaTargetLowering::lowerBlockAddress(BlockAddressSDNode *Node,
   const BlockAddress *BA = Node->getBlockAddress();
   EVT PtrVT = getPointerTy(DAG.getDataLayout());
 
-  //  SDValue TBA = DAG.getTargetBlockAddress(BA, PtrVT, Offset);
-  //  SDValue SDAddr = DAG.getTargetConstantPool(BA, PtrVT, 4);
-
   XtensaConstantPoolValue *CPV =
       XtensaConstantPoolConstant::Create(BA, 0, XtensaCP::CPBlockAddress, 0);
   SDValue CPAddr = DAG.getTargetConstantPool(CPV, PtrVT, 4);
@@ -1512,13 +1426,10 @@ SDValue XtensaTargetLowering::lowerBR_JT(SDValue Op, SelectionDAG &DAG) const {
   SDValue Index = Op.getOperand(2);
   SDLoc DL(Op);
   JumpTableSDNode *JT = cast<JumpTableSDNode>(Table);
-  //unsigned JTI = JT->getIndex();
   MachineFunction &MF = DAG.getMachineFunction();
   const MachineJumpTableInfo *MJTI = MF.getJumpTableInfo();
 
   SDValue TargetJT = DAG.getTargetJumpTable(JT->getIndex(), MVT::i32);
-  //unsigned NumEntries = MJTI->getJumpTables()[JTI].MBBs.size();
-  //  printf("--- Index = %d  NumEntries = %d\n", JTI, NumEntries);
 
   const DataLayout &TD = DAG.getDataLayout();
   EVT PTy = getPointerTy(TD);
@@ -1534,28 +1445,14 @@ SDValue XtensaTargetLowering::lowerBR_JT(SDValue Op, SelectionDAG &DAG) const {
                               MachinePointerInfo::getJumpTable(MF), MemVT);
   Addr = LD;
 
-  /*
-    if (1 )
-    //if ( TLI.isJumpTableRelative() )
-    {
-      // For PIC, the sequence is:
-      // BRIND(load(Jumptable + index) + RelocBase)
-      // RelocBase can be JumpTable, GOT or some sort of global base.
-      Addr = DAG.getNode(ISD::ADD, DL, PTy, Addr,
-                         getPICJumpTableRelocBase(Table, DAG));
-    }
-  */
-  //  return DAG.getNode(ISD::BRIND, DL, MVT::Other, LD.getValue(1), Addr);
   return DAG.getNode(XtensaISD::BR_JT, DL, MVT::Other, LD.getValue(1), Addr,
                      TargetJT);
 }
 
 SDValue XtensaTargetLowering::lowerJumpTable(JumpTableSDNode *JT,
                                              SelectionDAG &DAG) const {
-  //  printf("---- lowerJumpTable -------\n");
   SDLoc DL(JT);
   EVT PtrVt = getPointerTy(DAG.getDataLayout());
-  //SDValue Result = DAG.getTargetJumpTable(JT->getIndex(), PtrVt);
 
   // Create a constant pool entry for the callee address
   XtensaConstantPoolValue *CPV =
@@ -1566,14 +1463,10 @@ SDValue XtensaTargetLowering::lowerJumpTable(JumpTableSDNode *JT,
   SDValue CPWrap = getAddrPIC(CPAddr, DAG);
 
   return CPWrap;
-
-  // Use LARL to load the address of the table.
-  //  return getAddrPIC(Result, DAG);
 }
 
 SDValue XtensaTargetLowering::lowerConstantPool(ConstantPoolSDNode *CP,
                                                 SelectionDAG &DAG) const {
-  //  printf("---- lowerConstantPool\n");
   EVT PtrVT = getPointerTy(DAG.getDataLayout());
 
   SDValue Result;
@@ -1583,8 +1476,6 @@ SDValue XtensaTargetLowering::lowerConstantPool(ConstantPoolSDNode *CP,
   else
     Result = DAG.getTargetConstantPool(CP->getConstVal(), PtrVT,
                                        CP->getAlignment(), CP->getOffset());
-
-  //  Reloc::Model RM = DAG.getTarget().getRelocationModel();
 
   return getAddrPIC(Result, DAG);
 }
@@ -1733,13 +1624,8 @@ SDValue XtensaTargetLowering::lowerVAARG(SDValue Op, SelectionDAG &DAG) const {
     InChain = DAG.getStore(InChain, DL, IndexMasked, ARAreaPtr,
                            MachinePointerInfo(SV));
     ARIndex = IndexMasked;
-    //	ARIndex = DAG.getLoad(MVT::i32, DL, InChain, ARAreaPtr,
-    // MachinePointerInfo());
-    //   InChain = ARIndex.getValue(1);
   }
 
-  // select overflow_area if index > NumArgRegs
-  // int NumArgRegs = sizeof(XtensaArgRegs) / sizeof(MCPhysReg);
   int LastArgIdx = 4 * 6; // 6 - index of
                           // Xtensa::a7, last argument register + 1
   SDValue CC =
@@ -1787,16 +1673,12 @@ SDValue XtensaTargetLowering::lowerATOMIC_FENCE(SDValue Op,
 
 SDValue XtensaTargetLowering::lowerSTACKSAVE(SDValue Op,
                                              SelectionDAG &DAG) const {
-  MachineFunction &MF = DAG.getMachineFunction();
-  MF.getInfo<XtensaFunctionInfo>()->setManipulatesSP(true);
   unsigned sp = Xtensa::sp;
   return DAG.getCopyFromReg(Op.getOperand(0), SDLoc(Op), sp, Op.getValueType());
 }
 
 SDValue XtensaTargetLowering::lowerSTACKRESTORE(SDValue Op,
                                                 SelectionDAG &DAG) const {
-  MachineFunction &MF = DAG.getMachineFunction();
-  MF.getInfo<XtensaFunctionInfo>()->setManipulatesSP(true);
   unsigned sp = Xtensa::sp;
   SDValue NewSP =
       DAG.getNode(XtensaISD::MOVSP, SDLoc(Op), MVT::i32, Op.getOperand(1));
@@ -1824,7 +1706,6 @@ SDValue XtensaTargetLowering::lowerDYNAMIC_STACKALLOC(SDValue Op,
                                                       SelectionDAG &DAG) const {
   SDValue Chain = Op.getOperand(0); // Legalize the chain.
   SDValue Size = Op.getOperand(1);  // Legalize the size.
-  //unsigned StackAlign = Subtarget.getFrameLowering()->getStackAlignment();
   EVT VT = Size->getValueType(0);
   SDLoc DL(Op);
 
@@ -1974,7 +1855,6 @@ SDValue XtensaTargetLowering::LowerOperation(SDValue Op,
   case ISD::SRL_PARTS:
     return lowerShiftRightParts(Op, DAG, false);
   default:
-    // printf("--- Node %s\n", Op.getNode()->getOperationName().c_str());
     llvm_unreachable("Unexpected node to lower");
   }
 }
@@ -2023,103 +1903,6 @@ const char *XtensaTargetLowering::getTargetNodeName(unsigned Opcode) const {
 #undef OPCODE
 }
 
-/// LowerAsmOperandForConstraint - Lower the specified operand into the Ops
-/// vector.  If it is invalid, don't add anything to Ops.
-void XtensaTargetLowering::LowerAsmOperandForConstraint(
-    SDValue Op, std::string &Constraint, std::vector<SDValue> &Ops,
-    SelectionDAG &DAG) const {
-  SDLoc DL(Op);
-  SDValue Result;
-
-  // Only support length 1 constraints for now.
-  if (Constraint.length() > 1)
-    return;
-
-  char ConstraintLetter = Constraint[0];
-  switch (ConstraintLetter) {
-  default:
-    break;  // This will fall through to the generic implementation
-  case 'I': // Signed 16 bit constant
-    // If this fails, the parent routine will give an error
-    if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(Op)) {
-      EVT Type = Op.getValueType();
-      int64_t Val = C->getSExtValue();
-      if (isInt<16>(Val)) {
-        Result = DAG.getTargetConstant(Val, DL, Type);
-        break;
-      }
-    }
-    return;
-  case 'J': // integer zero
-    if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(Op)) {
-      EVT Type = Op.getValueType();
-      int64_t Val = C->getZExtValue();
-      if (Val == 0) {
-        Result = DAG.getTargetConstant(0, DL, Type);
-        break;
-      }
-    }
-    return;
-  case 'K': // unsigned 16 bit immediate
-    if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(Op)) {
-      EVT Type = Op.getValueType();
-      uint64_t Val = (uint64_t)C->getZExtValue();
-      if (isUInt<16>(Val)) {
-        Result = DAG.getTargetConstant(Val, DL, Type);
-        break;
-      }
-    }
-    return;
-  case 'L': // signed 32 bit immediate where lower 16 bits are 0
-    if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(Op)) {
-      EVT Type = Op.getValueType();
-      int64_t Val = C->getSExtValue();
-      if ((isInt<32>(Val)) && ((Val & 0xffff) == 0)) {
-        Result = DAG.getTargetConstant(Val, DL, Type);
-        break;
-      }
-    }
-    return;
-  case 'N': // immediate in the range of -65535 to -1 (inclusive)
-    if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(Op)) {
-      EVT Type = Op.getValueType();
-      int64_t Val = C->getSExtValue();
-      if ((Val >= -65535) && (Val <= -1)) {
-        Result = DAG.getTargetConstant(Val, DL, Type);
-        break;
-      }
-    }
-    return;
-  case 'O': // signed 15 bit immediate
-    if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(Op)) {
-      EVT Type = Op.getValueType();
-      int64_t Val = C->getSExtValue();
-      if ((isInt<15>(Val))) {
-        Result = DAG.getTargetConstant(Val, DL, Type);
-        break;
-      }
-    }
-    return;
-  case 'P': // immediate in the range of 1 to 65535 (inclusive)
-    if (ConstantSDNode *C = dyn_cast<ConstantSDNode>(Op)) {
-      EVT Type = Op.getValueType();
-      int64_t Val = C->getSExtValue();
-      if ((Val <= 65535) && (Val >= 1)) {
-        Result = DAG.getTargetConstant(Val, DL, Type);
-        break;
-      }
-    }
-    return;
-  }
-
-  if (Result.getNode()) {
-    Ops.push_back(Result);
-    return;
-  }
-
-  TargetLowering::LowerAsmOperandForConstraint(Op, Constraint, Ops, DAG);
-}
-
 //===----------------------------------------------------------------------===//
 // Custom insertion
 //===----------------------------------------------------------------------===//
@@ -2127,30 +1910,7 @@ void XtensaTargetLowering::LowerAsmOperandForConstraint(
 // Call pseduo ops for ABI compliant calls (output is always ra)
 MachineBasicBlock *XtensaTargetLowering::emitCALL(MachineInstr *MI,
                                                   MachineBasicBlock *BB) const {
-  //const TargetInstrInfo *TII = BB->getParent()->getSubtarget().getInstrInfo();
-  //DebugLoc DL = MI->getDebugLoc();
-  /* TODO
-    unsigned jump;
-    unsigned RA;
-    switch(MI->getOpcode())
-    {
-
-      case Xtensa::CALL0:
-        jump = Xtensa::CALL0; RA = Xtensa::ra; break;
-      case Xtensa::CALLX0:
-        jump = Xtensa::CALLX0; RA = Xtensa::ra; break;
-      default:
-        llvm_unreachable("Unexpected call instr type to insert");
-    }
-
-    MachineInstrBuilder jumpMI = BuildMI(*BB, MI, DL, TII->get(jump), RA);
-
-    //copy over other operands
-    for(unsigned i = 0; i < MI->getNumOperands(); i++){
-      jumpMI.addOperand(MI->getOperand(i));
-    }
-    MI->eraseFromParent();
-   */
+  // TODO
   return BB;
 }
 
@@ -2562,9 +2322,6 @@ MachineBasicBlock *XtensaTargetLowering::emitAtomicRMW(MachineInstr &MI,
     }
   }
 
-  // unsigned r3 = MRI.createVirtualRegister(RC);
-  // BuildMI(BB, DL, TII.get(Xtensa::MOV_N), r3).addReg(atomicValPhi);
-
   unsigned r4 = MRI.createVirtualRegister(RC);
   BuildMI(BB, DL, TII.get(Xtensa::WSR_SCOMPARE1)).addReg(atomicValPhi);
   BuildMI(BB, DL, TII.get(Xtensa::S32C1I), r4)
@@ -2813,7 +2570,6 @@ XtensaTargetLowering::emitAtomicRMW(MachineInstr &MI, MachineBasicBlock *BB,
 
 MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
     MachineInstr &MI, MachineBasicBlock *MBB) const {
-  //  printf("--- Custom insert %d\n", MI.getOpcode());
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   MachineFunction *MF = MBB->getParent();
   MachineRegisterInfo &MRI = MF->getRegInfo();
@@ -2825,9 +2581,6 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
   case Xtensa::SELECT_CC_INT_FP:
   case Xtensa::SELECT:
     return emitSelectCC(MI, MBB);
-    //    case Xtensa::FSELECT_CC_F:
-    //    case Xtensa::FSELECT_CC_D:
-    //        return emitSelectCC(MI, MBB);
 
   case Xtensa::SLL_P: {
     MachineOperand &R = MI.getOperand(0);
@@ -2989,62 +2742,6 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
     return MBB;
   }
 
-    /*
-case Xtensa::L32_FP: {
-MI.dump();
-return MBB;
-}
-
-case Xtensa::S32_FP: {
-MI.dump();
-return MBB;
-}
-*/
-
-  /*
-    case Xtensa::SETCC_EQZ:
-      {
-        MachineOperand &Dst = MI.getOperand(0);
-        MachineOperand &Src = MI.getOperand(1);
-
-        BuildMI(*MBB, MBB->begin(), DL, TII.get(Xtensa::NSAU))
-            .addReg(Dst.getReg())
-            .addReg(Src.getReg());
-        BuildMI(*MBB, MBB->begin(), DL, TII.get(Xtensa::SRLI))
-            .addReg(Dst.getReg())
-            .addReg(Dst.getReg())
-            .addImm(5);
-        MI.eraseFromParent(); // The pseudo instruction is gone now.
-            return MBB;
-      }
-
-    case Xtensa::SETCC_NEZ:
-      {
-        MachineOperand &Dst = MI.getOperand(0);
-        MachineOperand &Src = MI.getOperand(1);
-
-        unsigned TempReg = MRI.createVirtualRegister(&Xtensa::ARRegClass);
-
-        BuildMI(*MBB, MBB->begin(), DL, TII.get(Xtensa::MOVI_N))
-            .addReg(Dst.getReg())
-            .addImm(0);
-        BuildMI(*MBB, MBB->begin(), DL, TII.get(Xtensa::MOVI_N))
-            .addReg(TempReg)
-            .addImm(1);
-        BuildMI(*MBB, MBB->begin(), DL, TII.get(Xtensa::MOVNEZ))
-            .addReg(Dst.getReg())
-            .addReg(Src.getReg())
-                    .addReg(TempReg);
-        MI.eraseFromParent(); // The pseudo instruction is gone now.
-        return MBB;
-      }
-  */
-
-  /*
-  case Xtensa::CALL:
-  case Xtensa::CALLREG:
-      return emitCALL(MI, MBB);
-   */
   default:
     llvm_unreachable("Unexpected instr type to insert");
   }

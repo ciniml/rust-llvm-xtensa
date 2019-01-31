@@ -65,11 +65,7 @@ public:
 #include "XtensaGenAsmMatcher.inc"
 #undef GET_OPERAND_DIAGNOSTIC_TYPES
   };
-  /*
-    static bool classifySymbolRef(const MCExpr *Expr,
-                                  XtensaMCExpr::VariantKind &Kind,
-                                  int64_t &Addend);
-  */
+
   XtensaAsmParser(const MCSubtargetInfo &STI, MCAsmParser &Parser,
                   const MCInstrInfo &MII, const MCTargetOptions &Options)
       : MCTargetAsmParser(Options, STI, MII) {

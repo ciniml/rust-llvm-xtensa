@@ -40,53 +40,17 @@ XtensaMCInstLower::GetExternalSymbolSymbol(const MachineOperand &MO) const {
 
 MCSymbol *
 XtensaMCInstLower::GetJumpTableSymbol(const MachineOperand &MO) const {
-  /*
-  SmallString<256> Name;
-  raw_svector_ostream(Name) // << Printer.MAI->getPrivateGlobalPrefix()
-                            << "JTI"
-                            << Printer.getFunctionNumber() << '_'
-                            << MO.getIndex();
-
-  switch (MO.getTargetFlags())
-  {
-  default: llvm_unreachable("Unknown target flag on GV operand");
-  case 0: break;
-  }
-
-  // Create a symbol for the name.
-  return Printer.MF->getContext().GetOrCreateSymbol(Name.str());
-  */
   return Printer.GetJTISymbol(MO.getIndex());
 }
 
 MCSymbol *
 XtensaMCInstLower::GetConstantPoolIndexSymbol(const MachineOperand &MO) const {
-  /*
-  SmallString<256> Name;
-  raw_svector_ostream(Name) // <<  Printer.MAI->getPrivateGlobalPrefix()
-                            <<  "CPI"
-                            << Printer.getFunctionNumber() << '_'
-                            << MO.getIndex();
-
-  switch (MO.getTargetFlags()) {
-  default: llvm_unreachable("Unknown target flag on GV operand");
-  case 0: break;
-  }
-  */
   // Create a symbol for the name.
   return Printer.GetCPISymbol(MO.getIndex());
 }
 
 MCSymbol *
 XtensaMCInstLower::GetBlockAddressSymbol(const MachineOperand &MO) const {
-  /*
-  switch (MO.getTargetFlags())
-  {
-  default: llvm_unreachable("Unknown target flag on GV operand");
-  case 0: break;
-  }
-   */
-
   return Printer.GetBlockAddressSymbol(MO.getBlockAddress());
 }
 

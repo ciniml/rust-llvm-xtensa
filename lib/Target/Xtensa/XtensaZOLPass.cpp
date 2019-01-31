@@ -51,7 +51,7 @@ public:
     //    const TargetTransformInfo *TTI =
     //        &getAnalysis<TargetTransformInfoWrapperPass>().getTTI(
     //            *L->getHeader()->getParent());
-    //const DataLayout *DL = &L->getHeader()->getModule()->getDataLayout();
+    // const DataLayout *DL = &L->getHeader()->getModule()->getDataLayout();
 
     unsigned TC = SE->getSmallConstantMaxTripCount(L);
 

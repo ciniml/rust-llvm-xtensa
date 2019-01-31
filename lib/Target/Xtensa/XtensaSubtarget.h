@@ -18,18 +18,10 @@
 #include "XtensaISelLowering.h"
 #include "XtensaInstrInfo.h"
 #include "XtensaRegisterInfo.h"
-#if 0
-#include "llvm/ADT/Triple.h"
-#include "llvm/IR/DataLayout.h"
-#include "llvm/Target/TargetFrameLowering.h"
-#include "llvm/Target/TargetSelectionDAGInfo.h"
-#include "llvm/Target/TargetSubtargetInfo.h"
-#else
 #include "llvm/CodeGen/SelectionDAGTargetInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Target/TargetMachine.h"
-#endif
 #include <string>
 
 #define GET_SUBTARGETINFO_HEADER

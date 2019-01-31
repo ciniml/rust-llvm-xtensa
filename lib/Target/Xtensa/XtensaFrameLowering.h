@@ -10,7 +10,6 @@
 #ifndef LLVM_LIB_TARGET_XTENSA_XTENSAFRAMELOWERING_H
 #define LLVM_LIB_TARGET_XTENSA_XTENSAFRAMELOWERING_H
 
-//#include "llvm/Target/TargetFrameLowering.h"
 #include "llvm/CodeGen/TargetFrameLowering.h"
 
 namespace llvm {

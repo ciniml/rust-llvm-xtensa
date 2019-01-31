@@ -66,10 +66,6 @@ private:
   void printB4const_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
   void printB4constu_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
   void printSeimm4_AsmOperand(const MCInst *MI, int OpNum, raw_ostream &O);
-
-  // Print the mnemonic for a condition-code mask ("ne", "lh", etc.)
-  // This forms part of the instruction name rather than the operand list.
-  void printCond4Operand(const MCInst *MI, int OpNum, raw_ostream &O);
 };
 } // end namespace llvm
 

@@ -23,7 +23,6 @@
 
 using namespace llvm;
 
-/// Add a BDX memory reference for frame object FI to MIB.
 static inline const MachineInstrBuilder &
 addFrameReference(const MachineInstrBuilder &MIB, int FI) {
   MachineInstr *MI = MIB;
@@ -150,9 +149,6 @@ bool XtensaInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     if (!ThisTarget->isMBB())
       return true;
 
-    // if (ThisCond[0].getImm() == Xtensa::JX)
-    //  return true;
-
     if (ThisCond[0].getImm() == Xtensa::J) {
       // Handle unconditional branches.
       if (!AllowModify) {
@@ -166,16 +162,6 @@ bool XtensaInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 
       Cond.clear();
       FBB = 0;
-
-      // Delete the JMP if it's equivalent to a fall-through.
-      /*We can't do this now because the BBs can still be rearranged
-            if (MBB.isLayoutSuccessor(ThisTarget->getMBB())) {
-              TBB = 0;
-              I->eraseFromParent();
-              I = MBB.end();
-              continue;
-            }
-      */
 
       // TBB is used to indicate the unconditinal destination.
       TBB = ThisTarget->getMBB();
@@ -209,8 +195,6 @@ bool XtensaInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     unsigned OldCond = Cond[0].getImm();
     if (OldCond == ThisCond[0].getImm())
       continue;
-
-    // FIXME: Try combining conditions like X86 does.
   }
 
   return false;
@@ -370,84 +354,6 @@ void XtensaInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   else if (STI.hasF() && Xtensa::ARRegClass.contains(SrcReg) &&
            Xtensa::FPRRegClass.contains(DestReg))
     Opcode = Xtensa::WFR;
-  /*
-  else if (Xtensa::ARRegClass.contains(SrcReg) &&
-           Xtensa::SARLRegClass.contains(DestReg))
-    Opcode = Xtensa::SSL;
-  else if (Xtensa::ARRegClass.contains(SrcReg) &&
-           Xtensa::SARRRegClass.contains(DestReg))
-    Opcode = Xtensa::SSR;
-  */
-
-  /*
-  else if (Xtensa::FP32BitRegClass.contains(DestReg, SrcReg))
-  {
-    Opcode = Xtensa::FSGNJ_S;
-    BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
-      .addReg(SrcReg, getKillRegState(KillSrc))
-      .addReg(SrcReg, getKillRegState(KillSrc));
-    return;
-  }
-  else if (Xtensa::FP64BitRegClass.contains(DestReg, SrcReg))
-  {
-    Opcode = Xtensa::FSGNJ_D;
-    BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
-      .addReg(SrcReg, getKillRegState(KillSrc))
-      .addReg(SrcReg, getKillRegState(KillSrc));
-    return;
-  }
-  else if(Xtensa::FP32BitRegClass.contains(SrcReg) &&
-           Xtensa::GR32BitRegClass.contains(DestReg)){
-    Opcode = STI.isRV64() ? Xtensa::FMV_X_S64 : Xtensa::FMV_X_S;
-    BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
-      .addReg(SrcReg, getKillRegState(KillSrc));
-    return;
-  }
-  else if(Xtensa::FP32BitRegClass.contains(SrcReg) &&
-           Xtensa::GR64BitRegClass.contains(DestReg)){
-    Opcode = Xtensa::FMV_X_S64;
-    BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
-      .addReg(SrcReg, getKillRegState(KillSrc));
-    return;
-  }
-  else if(Xtensa::FP64BitRegClass.contains(SrcReg) &&
-           Xtensa::GR64BitRegClass.contains(DestReg)){
-    Opcode = Xtensa::FMV_X_D;
-    BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
-      .addReg(SrcReg, getKillRegState(KillSrc));
-    return;
-  }
-  else if(Xtensa::FP32BitRegClass.contains(DestReg) &&
-           Xtensa::GR32BitRegClass.contains(SrcReg)){
-    Opcode = STI.isRV64() ? Xtensa::FMV_S_X64 : Xtensa::FMV_S_X;
-    BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
-      .addReg(SrcReg, getKillRegState(KillSrc));
-    return;
-  }
-  else if(Xtensa::FP64BitRegClass.contains(DestReg) &&
-           Xtensa::GR64BitRegClass.contains(SrcReg))
-  {
-    Opcode = Xtensa::FMV_D_X;
-    BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
-      .addReg(SrcReg, getKillRegState(KillSrc));
-    return;
-  }
-  else if(Xtensa::FP64BitRegClass.contains(DestReg) &&
-           Xtensa::FP32BitRegClass.contains(SrcReg))
-  {
-    Opcode = Xtensa::FCVT_D_S_RDY;
-    BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
-      .addReg(SrcReg, getKillRegState(KillSrc));
-    return;
-  }
-  else if(Xtensa::FP32BitRegClass.contains(DestReg) &&
-           Xtensa::FP64BitRegClass.contains(SrcReg)){
-    Opcode = Xtensa::FCVT_S_D_RDY;
-    BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
-      .addReg(SrcReg, getKillRegState(KillSrc));
-    return;
-  }
-   */
   else
     llvm_unreachable("Impossible reg-to-reg copy");
 
@@ -462,9 +368,6 @@ void XtensaInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                           const TargetRegisterClass *RC,
                                           const TargetRegisterInfo *TRI) const {
   DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
-
-  // Callers may expect a single instruction, so keep 128-bit moves
-  // together for now and lower them after register allocation.
   unsigned LoadOpcode, StoreOpcode;
   getLoadStoreOpcodes(RC, LoadOpcode, StoreOpcode, FrameIdx);
   addFrameReference(BuildMI(MBB, MBBI, DL, get(StoreOpcode))
@@ -477,9 +380,6 @@ void XtensaInstrInfo::loadRegFromStackSlot(
     int FrameIdx, const TargetRegisterClass *RC,
     const TargetRegisterInfo *TRI) const {
   DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
-
-  // Callers may expect a single instruction, so keep 128-bit moves
-  // together for now and lower them after register allocation.
   unsigned LoadOpcode, StoreOpcode;
   getLoadStoreOpcodes(RC, LoadOpcode, StoreOpcode, FrameIdx);
   addFrameReference(BuildMI(MBB, MBBI, DL, get(LoadOpcode), DestReg), FrameIdx);
@@ -488,7 +388,7 @@ void XtensaInstrInfo::loadRegFromStackSlot(
 bool XtensaInstrInfo::reverseBranchCondition(
     SmallVectorImpl<MachineOperand> &Cond) const {
   assert(Cond.size() <= 4 && "Invalid branch condition!");
-  // Only need to switch the condition code, not the registers
+
   switch (Cond[0].getImm()) {
   case Xtensa::BEQ:
     Cond[0].setImm(Xtensa::BNE);
@@ -615,9 +515,6 @@ bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
   case Xtensa::J:
   case Xtensa::JX:
   case Xtensa::BR_JT:
-    //    case Xtensa::CALL0:
-    //    case Xtensa::CALLX0:
-    // Cond[0].setImm(Xtensa::UBRANCH);
     Cond[0].setImm(OpCode);
     Target = &MI->getOperand(0);
     return true;
@@ -631,7 +528,6 @@ bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
   case Xtensa::BGTU:
   case Xtensa::BLE:
   case Xtensa::BLEU:
-    // Cond[0].setImm(Xtensa::CBRANCH_RR);
     Cond[0].setImm(OpCode);
     Target = &MI->getOperand(2);
     return true;
@@ -642,7 +538,6 @@ bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
   case Xtensa::BLTUI:
   case Xtensa::BGEI:
   case Xtensa::BGEUI:
-    // Cond[0].setImm(Xtensa::CBRANCH_RI);
     Cond[0].setImm(OpCode);
     Target = &MI->getOperand(2);
     return true;
@@ -651,14 +546,12 @@ bool XtensaInstrInfo::isBranch(const MachineBasicBlock::iterator &MI,
   case Xtensa::BNEZ:
   case Xtensa::BLTZ:
   case Xtensa::BGEZ:
-    // Cond[0].setImm(Xtensa::CBRANCH_RZ);
     Cond[0].setImm(OpCode);
     Target = &MI->getOperand(1);
     return true;
 
   case Xtensa::BTs:
   case Xtensa::BFs:
-    // Cond[0].setImm(Xtensa::CBRANCH_B);
     Cond[0].setImm(OpCode);
     Target = &MI->getOperand(1);
     return true;
@@ -686,13 +579,6 @@ void XtensaInstrInfo::getLoadStoreOpcodes(const TargetRegisterClass *RC,
     LoadOpcode = Xtensa::L32F;
     StoreOpcode = Xtensa::S32F;
   }
-  /* TODO
-  else if (RC == &Xtensa::FP32RegClass)
-  {
-    LoadOpcode = Xtensa::FLW;
-    StoreOpcode = Xtensa::FSW;
-  }
-   */
   else
     llvm_unreachable("Unsupported regclass to load or store");
 }
@@ -730,6 +616,5 @@ void XtensaInstrInfo::loadImmediate(MachineBasicBlock &MBB,
     // use L32R to let assembler load immediate best
     // TODO replace to L32R
     llvm_unreachable("Unsupported load immediate value");
-    //    BuildMI(MBB, MBBI, DL, get(Xtensa::LI), *Reg).addImm(Value);
   }
 }

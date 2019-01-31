@@ -43,7 +43,6 @@ void XtensaAsmPrinter::EmitConstantPool() {
   if (CP.empty())
     return;
 
-  // OutStreamer->EmitRawText("\t.text");
   OutStreamer->SwitchSection(getObjFileLowering().SectionForGlobal(&F, TM));
   OutStreamer->EmitRawText("\t.literal_position");
   for (unsigned i = 0, e = CP.size(); i != e; ++i) {
@@ -77,9 +76,6 @@ void XtensaAsmPrinter::EmitConstantPool() {
 
 void XtensaAsmPrinter::EmitMachineConstantPoolValue(
     MachineConstantPoolValue *MCPV) {
-  //const DataLayout &DL = getDataLayout();
-  //int Size = DL.getTypeAllocSize(MCPV->getType());
-
   XtensaConstantPoolValue *ACPV = static_cast<XtensaConstantPoolValue *>(MCPV);
 
   MCSymbol *MCSym;
@@ -118,10 +114,6 @@ void XtensaAsmPrinter::EmitMachineConstantPoolValue(
     //    else
     //      MCSym = GetExternalSymbolSymbol(Sym);
   }
-
-  // Create an MCSymbol for the reference.
-  //  const MCExpr *Expr = MCSymbolRefExpr::create(MCSym, OutContext);
-  //  OutStreamer->EmitValue(Expr, Size);
 
   MCSymbol *LblSym = GetCPISymbol(ACPV->getLabelId());
 

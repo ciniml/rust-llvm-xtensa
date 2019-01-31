@@ -49,13 +49,6 @@ enum {
   // accesses (AUIPC).  Operand 0 is the address.
   PCREL_WRAPPER,
 
-  Hi,
-  Lo,
-
-  // TprelHi and TprelLo nodes are used to handle Local Exec TLS
-  TprelHi,
-  TprelLo,
-
   // Branches if a condition is true.  Operand 0 is the chain operand;
   // operand 1 is the 4-bit condition-code mask, with bit N in
   // big-endian order meaning "branch if CC=N"; operand 2 is the
@@ -135,7 +128,7 @@ public:
   unsigned
   getExceptionSelectorRegister(const Constant *PersonalityFn) const override;
 
-  bool isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const;
+  bool isOffsetFoldingLegal(const GlobalAddressSDNode *GA) const override;
   bool isFPImmLegal(const APFloat &Imm, EVT VT) const override;
   const char *getTargetNodeName(unsigned Opcode) const override;
   std::pair<unsigned, const TargetRegisterClass *>
@@ -218,10 +211,6 @@ private:
   SDValue lowerVASTART(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerVAARG(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerVACOPY(SDValue Op, SelectionDAG &DAG) const;
-  //  SDValue lowerDYNAMIC_STACKALLOC(SDValue Op, SelectionDAG &DAG) const;
-  //  SDValue lowerBITCAST(SDValue Op, SelectionDAG &DAG) const;
-  //  SDValue lowerOR(SDValue Op, SelectionDAG &DAG) const;
-  //  SDValue lowerATOMIC_FENCE(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerSTACKSAVE(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerSTACKRESTORE(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerFRAMEADDR(SDValue Op, SelectionDAG &DAG) const;
@@ -231,7 +220,6 @@ private:
   SDValue lowerShiftRightParts(SDValue Op, SelectionDAG &DAG, bool IsSRA) const;
 
   SDValue getTargetNode(SDValue Op, SelectionDAG &DAG, unsigned Flag) const;
-  //  SDValue getAddrNonPIC(SDValue Op, SelectionDAG &DAG) const;
   SDValue getAddrPIC(SDValue Op, SelectionDAG &DAG) const;
 
   // Implement EmitInstrWithCustomInserter for individual operation types.
@@ -257,13 +245,6 @@ private:
     return TargetLowering::getInlineAsmMemConstraint(ConstraintCode);
   }
 };
-
-/*
-class XtensaTargetObjectFile : public TargetLoweringObjectFileELF
-{
-  void Initialize(MCContext &Ctx, const TargetMachine &TM);
-};
-*/
 
 } // end namespace llvm
 

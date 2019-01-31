@@ -1,4 +1,5 @@
-//===- XtensaInstPrinter.cpp - Convert Xtensa MCInst to assembly syntax --------===//
+//===- XtensaInstPrinter.cpp - Convert Xtensa MCInst to assembly syntax
+//--------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -51,12 +52,7 @@ static void printExpr(const MCExpr *Expr, raw_ostream &OS) {
   switch (Kind) {
   case MCSymbolRefExpr::VK_None:
     break;
-  /* TODO
-  case MCSymbolRefExpr::VK_Xtensa_ABS_HI:    OS << "%hi(";     break;
-  case MCSymbolRefExpr::VK_Xtensa_ABS_LO:    OS << "%lo(";     break;
-  case MCSymbolRefExpr::VK_Xtensa_TPREL_HI:    OS << "%tprel_hi(";     break;
-  case MCSymbolRefExpr::VK_Xtensa_TPREL_LO:    OS << "%tprel_lo(";     break;
-   */
+  // TODO
   default:
     llvm_unreachable("Invalid kind!");
   }

@@ -272,8 +272,7 @@ let mayLoad = 1, usesCustomInserter = 1 in
 
 }
 
-// TODO
-// Xtensa missed L8I load operation
+// Xtensa missed L8I load operation, use pseudo operation
 let usesCustomInserter = 1 in
 def L8I_P: Pseudo<(outs AR:$t), (ins mem8:$addr),
                "!L8I_P $t, $addr",
@@ -569,15 +568,6 @@ let isReturn = 1, isTerminator = 1, isCodeGenOnly = 1,
     let s = 0;
     let t = 0;
   } 
-
-  /*
-  def RET: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins),
-                "ret", []>
-  {
-    let m = 0x2;
-    let n = 0x0;
-  }
-  */
   
   def RETW_N: RRRN_Inst<0x0D, (outs), (ins),
                 "retw.n", []>
@@ -586,15 +576,6 @@ let isReturn = 1, isTerminator = 1, isCodeGenOnly = 1,
     let s = 0;
     let t = 1;
   } 
-   
-  /*
-  def RETW: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins),
-                "retw", []>
-  {
-    let m = 0x2;
-    let n = 0x1;
-  }
-  */
 }
 
 def : Pat<(Xtensa_retflag), (RET_N)>;
@@ -830,6 +811,7 @@ def ULT_S:  FCompare<0x05, 0x0b, "ult.s", Xtensa_cmpult, 1>;
 def ULE_S:  FCompare<0x07, 0x0b, "ule.s", Xtensa_cmpule, 1>;
 def UN_S:   FCompare<0x01, 0x0b, "un.s",  Xtensa_cmpuo, 1>;
 
+// FP select operations
 let usesCustomInserter = 1 in
 {
   def SELECT_CC_FP_INT: Pseudo<(outs AR:$dst), (ins FPR:$lhs, FPR:$rhs, AR:$t, AR:$f, i32imm:$cond),
@@ -843,6 +825,7 @@ let usesCustomInserter = 1 in
                                     [(set FPR:$dst, (Xtensa_select_cc_fp FPR:$lhs, FPR:$rhs, FPR:$t, FPR:$f, imm:$cond))]>;
 }
 
+//FP complex operations
 def MADD_S: RRR_Inst<0x00, 0x0A, 0x04, (outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$t),
      "madd.s\t$r, $s, $t",
      [(set FPR:$r, (Xtensa_madd FPR:$a, FPR:$s, FPR:$t))]> 
@@ -861,6 +844,7 @@ def MSUB_S: RRR_Inst<0x00, 0x0A, 0x05, (outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$
   let Constraints = "$r = $a";
 }
 
+//FP move operations
 def MOV_S: RRR_Inst<0x00, 0x0A, 0x0f, (outs FPR:$r), (ins FPR:$s),
      "mov.s\t$r, $s",
      [(set FPR:$r, (Xtensa_movs FPR:$s))]> 
@@ -890,36 +874,6 @@ def : Pat<(i32 (atomic_load_32 addr_ish4:$addr)), (L32I addr_ish4:$addr)>;
 def : Pat<(atomic_store_8  addr_ish1:$addr, AR:$t), (S8I AR:$t, addr_ish1:$addr)>;
 def : Pat<(atomic_store_16 addr_ish2:$addr, AR:$t), (S16I AR:$t, addr_ish2:$addr)>;
 def : Pat<(atomic_store_32 addr_ish4:$addr, AR:$t), (S32I AR:$t, addr_ish4:$addr)>;
-
-let isCodeGenOnly = 1  in
-{
-	def MEMW:  RRR_Inst<0x00, 0x00, 0x00, (outs), (ins),
-					"memw", [(Xtensa_mem_barrier)]>
-	{
-	  let r = 0x2;
-	  let t = 0x0c;
-	  let s = 0x0;
-	}
-}
-
-let mayStore = 1, mayLoad = 1, usesCustomInserter = 1 in
-{
-  def S32C1I: RRI8_Inst<0x02, (outs AR:$a), (ins AR:$t, mem32:$addr),
-              "s32c1i\t$t, $addr", 
-			   []>
-             // [(set AR:$a, (Xtensa_s32c1i AR:$t, addr_ish4:$addr))]>
-  {
-    let r = 0x06;
-	let Uses = [SCOMPARE1];
-	let Constraints = "$a = $t";
-  }
-}
-
-def WSR_SCOMPARE1: RSR_Inst<0x00, 0x03, 0x01, (outs), (ins AR:$t),
-					"wsr\t$t, SCOMPARE1", [(Xtensa_wsr AR:$t)]>
-{
-	let Defs = [SCOMPARE1];
-}
 
 let usesCustomInserter = 1 in
 {
@@ -1032,6 +986,39 @@ let usesCustomInserter = 1 in
 	def ATOMIC_LOAD_UMAX_32_P: Pseudo<(outs AR:$dst), (ins AR:$ptr, AR:$arg),
 										"!atomic_load_umax_32_p, $dst, $ptr, $arg",
 										[(set AR:$dst, (atomic_load_umax_32 AR:$ptr, AR:$arg))]>;	
+}
+
+//===----------------------------------------------------------------------===//
+// Special instructions
+//===----------------------------------------------------------------------===//
+let isCodeGenOnly = 1  in
+{
+	def MEMW:  RRR_Inst<0x00, 0x00, 0x00, (outs), (ins),
+					"memw", [(Xtensa_mem_barrier)]>
+	{
+	  let r = 0x2;
+	  let t = 0x0c;
+	  let s = 0x0;
+	}
+}
+
+let mayStore = 1, mayLoad = 1, usesCustomInserter = 1 in
+{
+  def S32C1I: RRI8_Inst<0x02, (outs AR:$a), (ins AR:$t, mem32:$addr),
+              "s32c1i\t$t, $addr", 
+			   []>
+             // [(set AR:$a, (Xtensa_s32c1i AR:$t, addr_ish4:$addr))]>
+  {
+    let r = 0x06;
+	let Uses = [SCOMPARE1];
+	let Constraints = "$a = $t";
+  }
+}
+
+def WSR_SCOMPARE1: RSR_Inst<0x00, 0x03, 0x01, (outs), (ins AR:$t),
+					"wsr\t$t, SCOMPARE1", [(Xtensa_wsr AR:$t)]>
+{
+	let Defs = [SCOMPARE1];
 }
 
 def RUR_THREADPTR: RRR_Inst<0x00, 0x03, 0x0e, (outs AR:$dst), (ins),

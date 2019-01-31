@@ -25,8 +25,8 @@ using namespace llvm;
 XtensaConstantPoolValue::XtensaConstantPoolValue(
     Type *Ty, unsigned id, XtensaCP::XtensaCPKind kind, bool addCurrentAddress,
     XtensaCP::XtensaCPModifier modifier)
-    : MachineConstantPoolValue(Ty), LabelId(id), Kind(kind),
-      Modifier(modifier), AddCurrentAddress(addCurrentAddress) {}
+    : MachineConstantPoolValue(Ty), LabelId(id), Kind(kind), Modifier(modifier),
+      AddCurrentAddress(addCurrentAddress) {}
 
 XtensaConstantPoolValue::XtensaConstantPoolValue(
     LLVMContext &C, unsigned id, XtensaCP::XtensaCPKind kind,
@@ -89,33 +89,19 @@ XtensaConstantPoolConstant::XtensaConstantPoolConstant(
                               AddCurrentAddress),
       CVal(C) {}
 
-#if 0
-XtensaConstantPoolConstant *
-XtensaConstantPoolConstant::Create(const Constant *C, unsigned ID) 
-{
-  return new XtensaConstantPoolConstant(C, ID, XtensaCP::CPValue, 0, false);
-}
-
-XtensaConstantPoolConstant *
-XtensaConstantPoolConstant::Create(const GlobalValue *GV) 
-{
-  return new XtensaConstantPoolConstant((Type*)Type::getInt32Ty(GV->getContext()),
-                                     GV, 0, XtensaCP::CPValue, 0,  false);
-}
-#endif
 XtensaConstantPoolConstant *
 XtensaConstantPoolConstant::Create(const Constant *C, unsigned ID,
                                    XtensaCP::XtensaCPKind Kind) {
   return new XtensaConstantPoolConstant(C, ID, Kind, false);
 }
-#if 1
+
 XtensaConstantPoolConstant *
 XtensaConstantPoolConstant::Create(const Constant *C, unsigned ID,
                                    XtensaCP::XtensaCPKind Kind,
                                    bool AddCurrentAddress) {
   return new XtensaConstantPoolConstant(C, ID, Kind, AddCurrentAddress);
 }
-#endif
+
 const GlobalValue *XtensaConstantPoolConstant::getGV() const {
   return dyn_cast_or_null<GlobalValue>(CVal);
 }
@@ -123,13 +109,13 @@ const GlobalValue *XtensaConstantPoolConstant::getGV() const {
 const BlockAddress *XtensaConstantPoolConstant::getBlockAddress() const {
   return dyn_cast_or_null<BlockAddress>(CVal);
 }
-#if 1
+
 int XtensaConstantPoolConstant::getExistingMachineCPValue(
     MachineConstantPool *CP, unsigned Alignment) {
   return getExistingMachineCPValueImpl<XtensaConstantPoolConstant>(CP,
                                                                    Alignment);
 }
-#endif
+
 bool XtensaConstantPoolConstant::hasSameValue(XtensaConstantPoolValue *ACPV) {
   const XtensaConstantPoolConstant *ACPC =
       dyn_cast<XtensaConstantPoolConstant>(ACPV);
@@ -183,24 +169,7 @@ void XtensaConstantPoolSymbol::print(raw_ostream &O) const {
   O << S;
   XtensaConstantPoolValue::print(O);
 }
-#if 0
-XtensaConstantPoolMBB::XtensaConstantPoolMBB(LLVMContext &C,
-                                       const MachineBasicBlock *mbb,
-                                       unsigned id, bool AddCurrentAddress)
-  : XtensaConstantPoolValue(C, id, XtensaCP::CPMachineBasicBlock, 
-        AddCurrentAddress),
-    MBB(mbb) 
-{
-}
 
-XtensaConstantPoolMBB *XtensaConstantPoolMBB::Create(LLVMContext &C,
-                                               const MachineBasicBlock *mbb,
-                                               unsigned ID,
-                                               unsigned char PCAdj) 
-{
-  return new XtensaConstantPoolMBB(C, mbb, ID, false);
-}
-#endif
 int XtensaConstantPoolMBB::getExistingMachineCPValue(MachineConstantPool *CP,
                                                      unsigned Alignment) {
   return getExistingMachineCPValueImpl<XtensaConstantPoolMBB>(CP, Alignment);
@@ -244,10 +213,7 @@ bool XtensaConstantPoolJumpTable::hasSameValue(XtensaConstantPoolValue *ACPV) {
          XtensaConstantPoolValue::hasSameValue(ACPV);
 }
 
-void XtensaConstantPoolJumpTable::addSelectionDAGCSEId(FoldingSetNodeID &ID) {
-  //  ID.AddPointer(IDX);
-  //  XtensaConstantPoolValue::addSelectionDAGCSEId(ID);
-}
+void XtensaConstantPoolJumpTable::addSelectionDAGCSEId(FoldingSetNodeID &ID) {}
 
 void XtensaConstantPoolJumpTable::print(raw_ostream &O) const {
   O << "JT" << IDX;

@@ -143,10 +143,6 @@ class XtensaConstantPoolConstant : public XtensaConstantPoolValue {
                              bool AddCurrentAddress);
 
 public:
-#if 0
-  static XtensaConstantPoolConstant *Create(const Constant *C, unsigned ID);
-  static XtensaConstantPoolConstant *Create(const GlobalValue *GV);
-#endif
   static XtensaConstantPoolConstant *Create(const Constant *C, unsigned ID,
                                             XtensaCP::XtensaCPKind Kind);
   static XtensaConstantPoolConstant *Create(const Constant *C, unsigned ID,
@@ -155,10 +151,10 @@ public:
 
   const GlobalValue *getGV() const;
   const BlockAddress *getBlockAddress() const;
-#if 1
+
   int getExistingMachineCPValue(MachineConstantPool *CP,
                                 unsigned Alignment) override;
-#endif
+
   /// hasSameValue - Return true if this Xtensa constpool value can share the
   /// same constantpool entry as another Xtensa constpool value.
   bool hasSameValue(XtensaConstantPoolValue *ACPV) override;

@@ -111,10 +111,6 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
           .addReg(SP)
           .addImm(StackSize);
     } else {
-      //      MachineFunction *F = MBB.getParent();
-      //      unsigned TmpReg =
-      //      F->getRegInfo().createVirtualRegister(&Xtensa::ARRegClass);
-
       /* Use a8 as a temporary since a0-a7 may be live.  */
       unsigned TmpReg = Xtensa::a8;
 
@@ -176,16 +172,6 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
 
   if (StackSize != PrevStackSize) {
     MFI.setStackSize(StackSize);
-    // Correct SPOffset for all non-fixed objects (locals)
-    // It's kind of low level trick
-    /*
-    for (int i = 0; i < MFI.getObjectIndexEnd(); i++) {
-      if (!MFI.isDeadObjectIndex(i)) {
-        MFI.setObjectOffset(i, MFI.getObjectOffset(i) - StackSize +
-    PrevStackSize);
-      }
-    }
-        */
 
     for (int i = MFI.getObjectIndexBegin(); i < MFI.getObjectIndexEnd(); i++) {
       if (!MFI.isDeadObjectIndex(i)) {
@@ -351,9 +337,7 @@ void XtensaFrameLowering::determineCalleeSaves(MachineFunction &MF,
     SavedRegs.set(FP);
 
   // Set scavenging frame index if necessary.
-  uint64_t MaxSPOffset =
-      MF.getInfo<XtensaFunctionInfo>()->getIncomingArgSize() +
-      MFI.estimateStackSize(MF);
+  uint64_t MaxSPOffset = MFI.estimateStackSize(MF);
 
   if (isInt<12>(MaxSPOffset))
     return;
