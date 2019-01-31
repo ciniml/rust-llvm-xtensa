@@ -544,45 +544,7 @@ bool XtensaAsmParser::ParseInstruction(ParseInstructionInfo &Info,
   getParser().Lex(); // Consume the EndOfStatement.
   return false;
 }
-/*
-bool XtensaAsmParser::classifySymbolRef(const MCExpr *Expr,
-                                       XtensaMCExpr::VariantKind &Kind,
-                                       int64_t &Addend) {
-  Addend = 0;
 
-  // It's a simple symbol reference or constant with no addend.
-  if (isa<MCConstantExpr>(Expr) || isa<MCSymbolRefExpr>(Expr))
-    return true;
-
-  const MCBinaryExpr *BE = dyn_cast<MCBinaryExpr>(Expr);
-  if (!BE)
-    return false;
-
-  if (!isa<MCSymbolRefExpr>(BE->getLHS()))
-    return false;
-
-  if (BE->getOpcode() != MCBinaryExpr::Add &&
-      BE->getOpcode() != MCBinaryExpr::Sub)
-    return false;
-
-  // We are able to support the subtraction of two symbol references
-  if (BE->getOpcode() == MCBinaryExpr::Sub &&
-      isa<MCSymbolRefExpr>(BE->getRHS()))
-    return true;
-
-  // See if the addend is a constant, otherwise there's more going
-  // on here than we can deal with.
-  auto AddendExpr = dyn_cast<MCConstantExpr>(BE->getRHS());
-  if (!AddendExpr)
-    return false;
-
-  Addend = AddendExpr->getValue();
-  if (BE->getOpcode() == MCBinaryExpr::Sub)
-    Addend = -Addend;
-
-  return true;
-}
-*/
 bool XtensaAsmParser::ParseDirective(AsmToken DirectiveID) { return true; }
 
 // Force static initialization.
