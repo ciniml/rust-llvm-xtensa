@@ -80,9 +80,9 @@ class ADDX<bits<4> oper, string instrAsm, list<dag> pattern>:
 def ADDX2: ADDX<0x09, "addx2", [(set AR:$r, (add AR:$t, (shl AR:$s, (i32 1))))]>;
 def ADDX4: ADDX<0x0A, "addx4", [(set AR:$r, (add AR:$t, (shl AR:$s, (i32 2))))]>;
 def ADDX8: ADDX<0x0B, "addx8", [(set AR:$r, (add AR:$t, (shl AR:$s, (i32 3))))]>;
-def SUBX2: ADDX<0x0D, "subx2", [(set AR:$r, (sub (shl AR:$t, (i32 1)), AR:$s))]>;
-def SUBX4: ADDX<0x0E, "subx4", [(set AR:$r, (sub (shl AR:$t, (i32 2)), AR:$s))]>;
-def SUBX8: ADDX<0x0F, "subx8", [(set AR:$r, (sub (shl AR:$t, (i32 3)), AR:$s))]>;
+def SUBX2: ADDX<0x0D, "subx2", [(set AR:$r, (sub (shl AR:$s, (i32 1)), AR:$t))]>;
+def SUBX4: ADDX<0x0E, "subx4", [(set AR:$r, (sub (shl AR:$s, (i32 2)), AR:$t))]>;
+def SUBX8: ADDX<0x0F, "subx8", [(set AR:$r, (sub (shl AR:$s, (i32 3)), AR:$t))]>;
 
 def NEG: RRR_Inst<0x00, 0x00, 0x06, (outs AR:$r), (ins AR:$t),
      "neg\t$r, $t",
