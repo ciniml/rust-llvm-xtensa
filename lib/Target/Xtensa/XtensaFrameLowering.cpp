@@ -327,6 +327,7 @@ void XtensaFrameLowering::determineCalleeSaves(MachineFunction &MF,
     SavedRegs.resize(RegInfo->getNumRegs());
     for (int i = Xtensa::a8; i <= Xtensa::a15; i++)
       SavedRegs.set(i);
+
     return;
   }
 
@@ -342,11 +343,24 @@ void XtensaFrameLowering::determineCalleeSaves(MachineFunction &MF,
   if (isInt<12>(MaxSPOffset))
     return;
 
-  const TargetRegisterClass &RC =
-      Xtensa::ARRegClass /* Xtensa::ARBitRegClass */;
+  const TargetRegisterClass &RC = Xtensa::ARRegClass;
   const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
   unsigned Size = TRI->getSpillSize(RC);
   unsigned Align = TRI->getSpillAlignment(RC);
   int FI = MF.getFrameInfo().CreateStackObject(Size, Align, false);
   RS->addScavengingFrameIndex(FI);
+}
+
+void XtensaFrameLowering::processFunctionBeforeFrameFinalized(
+    MachineFunction &MF, RegScavenger *RS) const {
+  const XtensaSubtarget &STI = MF.getSubtarget<XtensaSubtarget>();
+  // In WinABI mode add register scavenging slot
+  if (STI.isWinABI()) {
+    MachineFrameInfo &MFI = MF.getFrameInfo();
+    const TargetRegisterClass &RC = Xtensa::ARRegClass;
+    const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
+    unsigned Size = TRI.getSpillSize(RC);
+    unsigned Align = TRI.getSpillAlignment(RC);
+    RS->addScavengingFrameIndex(MFI.CreateStackObject(Size, Align, false));
+  }
 }
