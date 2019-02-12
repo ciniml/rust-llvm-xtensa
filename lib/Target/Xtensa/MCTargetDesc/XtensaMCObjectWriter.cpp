@@ -48,7 +48,9 @@ unsigned XtensaObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Target,
 }
 
 std::unique_ptr<MCObjectWriter>
-llvm::createXtensaObjectWriter(raw_pwrite_stream &OS, uint8_t OSABI) {
+llvm::createXtensaObjectWriter(raw_pwrite_stream &OS, uint8_t OSABI,
+                               bool IsLittleEndian) {
   return createELFObjectWriter(llvm::make_unique<XtensaObjectWriter>(OSABI), OS,
-                               /*IsLittleEndian=*/false);
+                               IsLittleEndian);
 }
+

@@ -21,7 +21,8 @@ using namespace llvm;
 namespace {
 class XtensaMCAsmBackend : public MCAsmBackend {
   uint8_t OSABI;
-
+  bool IsLittleEndian = true; // TODO: maybe big-endian machine support is also
+                              // needed. Now default is little-endian machine
 public:
   XtensaMCAsmBackend(uint8_t osABI) : OSABI(osABI) {}
 
@@ -43,7 +44,7 @@ public:
 
   std::unique_ptr<MCObjectWriter>
   createObjectWriter(raw_pwrite_stream &OS) const override {
-    return createXtensaObjectWriter(OS, OSABI);
+    return createXtensaObjectWriter(OS, OSABI, IsLittleEndian);
   }
 };
 } // end anonymous namespace
@@ -75,6 +76,7 @@ void XtensaMCAsmBackend::relaxInstruction(const MCInst &Inst,
 
 bool XtensaMCAsmBackend::writeNopData(uint64_t Count,
                                       MCObjectWriter *OW) const {
+  //TODO finish implementation
   for (uint64_t I = 0; I != Count; ++I)
     OW->write8(7);
   return true;
@@ -88,3 +90,4 @@ MCAsmBackend *llvm::createXtensaMCAsmBackend(const Target &T,
       MCELFObjectTargetWriter::getOSABI(STI.getTargetTriple().getOS());
   return new XtensaMCAsmBackend(OSABI);
 }
+

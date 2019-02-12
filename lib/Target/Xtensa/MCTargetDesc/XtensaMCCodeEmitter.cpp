@@ -27,6 +27,7 @@ namespace {
 class XtensaMCCodeEmitter : public MCCodeEmitter {
   const MCInstrInfo &MCII;
   MCContext &Ctx;
+  bool IsLittleEndian = true; //TODO: maybe big-endian machine support is also needed. Now default is little-endian machine
 
 public:
   XtensaMCCodeEmitter(const MCInstrInfo &mcii, MCContext &ctx)
@@ -112,11 +113,17 @@ void XtensaMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                                             const MCSubtargetInfo &STI) const {
   uint64_t Bits = getBinaryCodeForInstr(MI, Fixups, STI);
   unsigned Size = MCII.get(MI.getOpcode()).getSize();
-  // Little-endian insertion of Size bytes.
-  unsigned ShiftValue = 0;
-  for (unsigned I = 0; I != Size; ++I) {
-    OS << uint8_t(Bits >> ShiftValue);
-    ShiftValue += 8;
+  if (IsLittleEndian)
+  {
+    // Little-endian insertion of Size bytes.
+    unsigned ShiftValue = 0;
+    for (unsigned I = 0; I != Size; ++I) {
+      OS << uint8_t(Bits >> ShiftValue);
+      ShiftValue += 8;
+    }
+  } else
+  {
+    //TODO Big-endian insertion of Size bytes.
   }
 }
 
@@ -137,6 +144,7 @@ unsigned XtensaMCCodeEmitter::getPCRelEncoding(const MCInst &MI,
                                                unsigned Kind,
                                                int64_t Offset) const {
   const MCOperand &MO = MI.getOperand(OpNum);
+  //TODO finish implementation
   // For compatibility with the GNU assembler, treat constant operands as
   // unadjusted PC-relative offsets.
   if (MO.isImm())
@@ -152,3 +160,4 @@ unsigned XtensaMCCodeEmitter::getPCRelEncoding(const MCInst &MI,
 }
 
 #include "XtensaGenMCCodeEmitter.inc"
+

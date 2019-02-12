@@ -20,6 +20,7 @@ using namespace llvm;
 XtensaMCAsmInfo::XtensaMCAsmInfo() {
   CodePointerSize = 8;
   CalleeSaveStackSlotSize = 8;
+ //TODO maybe Big-endian mode should be added
   IsLittleEndian = true;
 
   CommentString = "#";

@@ -42,10 +42,9 @@ MCAsmBackend *createXtensaMCAsmBackend(const Target &T,
                                        const MCRegisterInfo &MRI,
                                        const MCTargetOptions &Options);
 
-// MCObjectWriter *createXtensaObjectWriter(raw_pwrite_stream &OS, uint8_t
-// OSABI);
 std::unique_ptr<MCObjectWriter> createXtensaObjectWriter(raw_pwrite_stream &OS,
-                                                         uint8_t OSABI);
+                                                         uint8_t OSABI,
+                                                         bool IsLittleEndian);
 
 namespace XtensaMC {
 // How many bytes are in the ABI-defined, caller-allocated part of
