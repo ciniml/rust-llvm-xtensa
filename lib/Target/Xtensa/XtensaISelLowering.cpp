@@ -1668,7 +1668,7 @@ SDValue XtensaTargetLowering::lowerATOMIC_FENCE(SDValue Op,
                                                 SelectionDAG &DAG) const {
   SDLoc DL(Op);
   SDValue Chain = Op.getOperand(0);
-  return DAG.getNode(XtensaISD::MEMW, DL, MVT::isVoid, Chain);
+  return DAG.getNode(XtensaISD::MEMW, DL, MVT::Other, Chain);
 }
 
 SDValue XtensaTargetLowering::lowerSTACKSAVE(SDValue Op,

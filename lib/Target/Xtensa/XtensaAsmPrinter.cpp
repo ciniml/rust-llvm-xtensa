@@ -104,12 +104,10 @@ void XtensaAsmPrinter::EmitMachineConstantPoolValue(
     // references Some clear method required
     // if (strchr(Sym, '.'))
     {
-      char buf[256];
+      std::string buf(Sym);
       if (XtensaSym->isPrivateLinkage())
-        sprintf(buf, ".L%s", Sym);
-      else
-        sprintf(buf, "%s", Sym);
-      MCSym = GetExternalSymbolSymbol(buf);
+        buf = ".L" + buf;
+      MCSym = GetExternalSymbolSymbol(StringRef(buf));
     }
     //    else
     //      MCSym = GetExternalSymbolSymbol(Sym);
