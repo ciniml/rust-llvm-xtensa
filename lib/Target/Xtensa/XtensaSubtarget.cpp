@@ -42,7 +42,7 @@ XtensaSubtarget::XtensaSubtarget(const Triple &TT, const std::string &CPU,
     : XtensaGenSubtargetInfo(TT, CPU, FS), XtensaArchVersion(ESP32),
       TargetTriple(TT), InstrInfo(initializeSubtargetDependencies(CPU, FS)),
       TLInfo(TM, *this), TSInfo(), FrameLowering(), UseSmallSection(false),
-      UseSoftFloat(false), HasF(true) {}
+      UseSoftFloat(false) {}
 /*
 // Return true if GV binds locally under reloc model RM.
 static bool bindsLocally(const GlobalValue *GV, Reloc::Model RM) {

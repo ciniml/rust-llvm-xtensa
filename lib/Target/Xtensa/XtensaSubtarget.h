@@ -45,7 +45,45 @@ private:
   XtensaFrameLowering FrameLowering;
   bool UseSmallSection;
   bool UseSoftFloat;
-  bool HasF;
+
+  // Enabled Xtensa Density extension
+  bool HasDensity = true;
+
+  // Enabled Xtensa Single FP instructions
+  bool HasSingleFloat = true;
+
+  // Enabled Xtensa Loop extension
+  bool HasLoop = true;
+
+  // Enabled Xtensa MAC16 instructions
+  bool HasMAC16 = true;
+
+  // Enabled Xtensa Window extension
+  bool HasWindow = true;
+
+  // Enabled Xtensa Boolean extension
+  bool HasBoolean = true;
+
+  // Enable Xtensa Sign Extend option
+  bool HasSEXT = true;
+
+  // Enable Xtensa NSA option
+  bool HasNSA = true;
+
+  // Enable Xtensa Mul32 option
+  bool HasMul32 = true;
+
+  // Enable Xtensa Mul32High option
+  bool HasMul32High = true;
+
+  // Enable Xtensa Div32 option
+  bool HasDiv32 = true;
+
+  // Enable Xtensa S32C1I option
+  bool HasS32C1I = true;
+
+  // Enable Xtensa THREADPTR option
+  bool HasTHREADPTR = true;
 
   XtensaSubtarget &initializeSubtargetDependencies(StringRef CPU, StringRef FS);
 
@@ -66,7 +104,31 @@ public:
 
   bool isWinABI() const { return true /* isESP32(); */; };
 
-  bool hasF() const { return HasF; };
+  bool hasDensity() const { return HasDensity; };
+
+  bool hasSingleFloat() const { return HasSingleFloat; };
+
+  bool hasWindow() const { return HasWindow; }; 
+
+  bool hasLoop() const { return HasLoop; }; 
+
+  bool hasMAC16() const { return HasMAC16; }; 
+
+  bool hasBoolean() const { return HasBoolean; }; 
+
+  bool hasSEXT() const { return HasSEXT; }; 
+
+  bool hasNSA() const { return HasNSA; }; 
+
+  bool hasMul32() const { return HasMul32; }; 
+
+  bool hasMul32High() const { return HasMul32High; }; 
+
+  bool hasDiv32() const { return HasDiv32; }; 
+
+  bool hasS32C1I() const { return HasS32C1I; }; 
+  
+  bool hasTHREADPTR() const { return HasTHREADPTR; }; 
 
   bool useSoftFloat() const { return UseSoftFloat; }
 

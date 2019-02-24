@@ -40,13 +40,13 @@ class ArithLogic_RRR<bits<4> oper2, bits<4> oper1, string instrAsm,
 def ADD: ArithLogic_RRR<0x08, 0x00, "add", add, 1>;
 def SUB: ArithLogic_RRR<0x0C, 0x00, "sub", sub>;
 def AND: ArithLogic_RRR<0x01, 0x00, "and", and, 1>;
-def MULL: ArithLogic_RRR<0x08, 0x02, "mull", mul, 1>;
-def MULUH: ArithLogic_RRR<0x0A, 0x02, "muluh", mulhu, 1>;
-def MULSH: ArithLogic_RRR<0x0B, 0x02, "mulus", mulhs, 1>;
-def QUOS: ArithLogic_RRR<0x0D, 0x02, "quos", sdiv>;
-def QUOU: ArithLogic_RRR<0x0C, 0x02, "quou", udiv>;
-def REMS: ArithLogic_RRR<0x0F, 0x02, "rems", srem>;
-def REMU: ArithLogic_RRR<0x0E, 0x02, "remu", urem>;
+def MULL: ArithLogic_RRR<0x08, 0x02, "mull", mul, 1>, Requires<[HasMul32]>;
+def MULUH: ArithLogic_RRR<0x0A, 0x02, "muluh", mulhu, 1>, Requires<[HasMul32High]>;
+def MULSH: ArithLogic_RRR<0x0B, 0x02, "mulus", mulhs, 1>, Requires<[HasMul32High]>;
+def QUOS: ArithLogic_RRR<0x0D, 0x02, "quos", sdiv>, Requires<[HasDiv32]>;
+def QUOU: ArithLogic_RRR<0x0C, 0x02, "quou", udiv>, Requires<[HasDiv32]>;
+def REMS: ArithLogic_RRR<0x0F, 0x02, "rems", srem>, Requires<[HasDiv32]>;
+def REMU: ArithLogic_RRR<0x0E, 0x02, "remu", urem>, Requires<[HasDiv32]>;
 def OR: ArithLogic_RRR<0x02, 0x00, "or", or, 1>;
 def XOR: ArithLogic_RRR<0x03, 0x00, "xor", xor, 1>;
 
@@ -202,7 +202,7 @@ def MOV_N: RRRN_Inst<0x0D, (outs AR:$t), (ins AR:$s),
 
 def MOVSP: RRR_Inst<0x00, 0x00, 0x00, (outs AR:$t), (ins AR:$s),
    "movsp\t$t, $s",
-   [(set AR:$t, (Xtensa_movsp AR:$s))]>
+   [(set AR:$t, (Xtensa_movsp AR:$s))]>, Requires<[HasWindow]>
 {
   let r = 0x01;
 }
@@ -278,13 +278,14 @@ def L8I_P: Pseudo<(outs AR:$t), (ins mem8:$addr),
                "!L8I_P $t, $addr",
                 [(set AR:$t, (sextloadi8 
 				addr_ish1:$addr))]>;
-
-def SEXT: RRR_Inst<0x00, 0x00, 0x04, (outs AR:$r), (ins AR:$s, seimm4:$imm),
-     "sext\t$r, $s, $imm",
-     []>
-{
-  let t = !add(imm, -7);
-}
+//let Predicates = [HasSEXT] in {
+  def SEXT: RRR_Inst<0x00, 0x00, 0x04, (outs AR:$r), (ins AR:$s, seimm4:$imm),
+       "sext\t$r, $s, $imm",
+       []>,Requires<[HasSEXT]>
+  {
+    let t = !add(imm, -7);
+  }
+//}
 
 def L8UI: Load_RRI8<0x09, "l8ui", zextloadi8, addr_ish1, mem8>;
 def L16SI: Load_RRI8<0x09, "l16si", sextloadi16, addr_ish2, mem16>;
@@ -334,18 +335,20 @@ def MOVGEZ : RRR_Inst<0x00, 0x03, 0x0B, (outs AR:$r), (ins AR:$s, AR:$t),
      "movgez\t$r, $s, $t",
      []>;
 
-def NSA : RRR_Inst<0x00, 0x00, 0x04, (outs AR:$t), (ins AR:$s),
-     "nsa\t$t, $s",
-     []>
-{
-  let r = 0xE;
-}
+let Predicates = [HasNSA] in {
+  def NSA : RRR_Inst<0x00, 0x00, 0x04, (outs AR:$t), (ins AR:$s),
+       "nsa\t$t, $s",
+       []>
+  {
+    let r = 0xE;
+  }
 
-def NSAU : RRR_Inst<0x00, 0x00, 0x04, (outs AR:$t), (ins AR:$s),
-     "nsau\t$t, $s",
-     []>
-{
-  let r = 0xF;
+  def NSAU : RRR_Inst<0x00, 0x00, 0x04, (outs AR:$t), (ins AR:$s),
+       "nsau\t$t, $s",
+       []>
+  {
+    let r = 0xF;
+  }
 }
 
 // FrameIndexes are legalized when they are operands from load/store
@@ -506,21 +509,21 @@ let isCall = 1,
   
   def CALL4: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
           "call4\t$offset", 
-          []>
+          []>, Requires<[HasWindow]>
   {
     let n = 1;
   }
 
   def CALL8: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
           "call8\t$offset", 
-          []>
+          []>, Requires<[HasWindow]>
   {
     let n = 2;
   }
 
   def CALL12: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
           "call12\t$offset", 
-          []>
+          []>, Requires<[HasWindow]>
   {
     let n = 3;
   }
@@ -535,21 +538,21 @@ let isCall = 1,
     }
 	
     def CALLX4: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
-            "callx4\t$s", []>
+            "callx4\t$s", []>, Requires<[HasWindow]>
     {
       let m = 0x3;
       let n = 0x1;
     }
 
     def CALLX8: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
-            "callx8\t$s", []>
+            "callx8\t$s", []>, Requires<[HasWindow]>
     {
       let m = 0x3;
       let n = 0x2;
     }
 
     def CALLX12: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
-            "callx12\t$s", []>
+            "callx12\t$s", []>, Requires<[HasWindow]>
     {
       let m = 0x3;
       let n = 0x3;
@@ -558,7 +561,7 @@ let isCall = 1,
 }
 
 let isReturn = 1, isTerminator = 1, isCodeGenOnly = 1,
-    isBarrier = 1, hasCtrlDep = 1 in
+    isBarrier = 1, hasCtrlDep = 1, Predicates = [HasWindow] in
 {
 
   def RET_N: RRRN_Inst<0x0D, (outs), (ins),
@@ -582,7 +585,7 @@ def : Pat<(Xtensa_retflag), (RET_N)>;
 def : Pat<(Xtensa_retWflag), (RETW_N)>;
 
 def ENTRY: BRI12_Inst<0x06, (outs), (ins AR:$s, entry_imm12:$imm12), 
-                "entry\t$s, $imm12", []>
+                "entry\t$s, $imm12", []>, Requires<[HasWindow]>
 {
   let m = 0x0;
   let n = 0x2;
@@ -695,6 +698,7 @@ class FPArith_RRR<bits<4> oper2, bits<4> oper1, string instrAsm,
 {
   let isCommutable = isComm;
   let isReMaterializable = 0;
+  let Predicates = [HasSingleFloat];
 }
 
 def ADD_S: FPArith_RRR<0x00, 0x0A, "add.s", fadd, 1>;
@@ -758,7 +762,7 @@ def WFR: RRR_Inst<0x05, 0x0A, 0x0f, (outs FPR:$r), (ins AR:$s),
 } 
 
 // FP load instructions
-let mayLoad = 1, usesCustomInserter = 1 in
+let mayLoad = 1, usesCustomInserter = 1, Predicates = [HasSingleFloat] in
 {
   class LoadF_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
      // ComplexPattern addrOp, Operand memOp>: RRI8_Inst<0x02, (outs), (ins AR:$t, memOp:$addr),
@@ -770,10 +774,10 @@ let mayLoad = 1, usesCustomInserter = 1 in
   }
 }
 
-def L32F: LoadF_RRI8<0x00, "lsi", load, addr_ish4, mem32>;
+def L32F: LoadF_RRI8<0x00, "lsi", load, addr_ish4, mem32>, Requires<[]>;
 
 // FP store instructions
-let mayStore = 1, usesCustomInserter = 1 in
+let mayStore = 1, usesCustomInserter = 1, Predicates = [HasSingleFloat] in
 {
   class StoreF_RRI8<bits<4> oper, string instrAsm, SDPatternOperator opNode, 
       ComplexPattern addrOp, Operand memOp>: RRI8_Inst<0x03, (outs), (ins FPR:$t, memOp:$addr),
@@ -789,7 +793,7 @@ def S32F: StoreF_RRI8<0x04, "ssi", store, addr_ish4, mem32>;
 
 // FP compare instructions
 
-let isCompare = 1 in 
+let isCompare = 1, Predicates = [HasSingleFloat] in 
 {
   class FCompare <bits<4> oper2, bits<4> oper1, string instrAsm, 
       SDPatternOperator opNode, bit isComm = 0>:
@@ -799,6 +803,7 @@ let isCompare = 1 in
   {
     let isCommutable = isComm;
     let isReMaterializable = 0;
+	let Predicates = [HasSingleFloat];
   }
 }
 
@@ -828,7 +833,7 @@ let usesCustomInserter = 1 in
 //FP complex operations
 def MADD_S: RRR_Inst<0x00, 0x0A, 0x04, (outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$t),
      "madd.s\t$r, $s, $t",
-     [(set FPR:$r, (Xtensa_madd FPR:$a, FPR:$s, FPR:$t))]> 
+     [(set FPR:$r, (Xtensa_madd FPR:$a, FPR:$s, FPR:$t))]>, Requires<[HasSingleFloat]>
 {
   let isCommutable = 0;
   let isReMaterializable = 0;
@@ -837,7 +842,7 @@ def MADD_S: RRR_Inst<0x00, 0x0A, 0x04, (outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$
 
 def MSUB_S: RRR_Inst<0x00, 0x0A, 0x05, (outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$t),
      "msub.s\t$r, $s, $t",
-     [(set FPR:$r, (Xtensa_msub FPR:$a, FPR:$s, FPR:$t))]> 
+     [(set FPR:$r, (Xtensa_msub FPR:$a, FPR:$s, FPR:$t))]>, Requires<[HasSingleFloat]> 
 {
   let isCommutable = 0;
   let isReMaterializable = 0;
@@ -847,7 +852,7 @@ def MSUB_S: RRR_Inst<0x00, 0x0A, 0x05, (outs FPR:$r), (ins FPR:$a, FPR:$s, FPR:$
 //FP move operations
 def MOV_S: RRR_Inst<0x00, 0x0A, 0x0f, (outs FPR:$r), (ins FPR:$s),
      "mov.s\t$r, $s",
-     [(set FPR:$r, (Xtensa_movs FPR:$s))]> 
+     [(set FPR:$r, (Xtensa_movs FPR:$s))]>, Requires<[HasSingleFloat]>
 {
   let t = 0x00;
 } 
@@ -855,7 +860,7 @@ def MOV_S: RRR_Inst<0x00, 0x0A, 0x0f, (outs FPR:$r), (ins FPR:$s),
 // Boolean branch Instructions
 //===----------------------------------------------------------------------===//
 
-let isBranch = 1, isTerminator = 1, isBarrier = 1 in 
+let isBranch = 1, isTerminator = 1, isBarrier = 1, Predicates = [HasBoolean] in 
 {
   def BTs: CALL_Inst<0x06, (outs), (ins BR:$b, brtarget:$offset), "bt\t$b, $offset", 
           [(Xtensa_brcc_t BR:$b, bb:$offset)]>;
@@ -1002,7 +1007,7 @@ let isCodeGenOnly = 1  in
 	}
 }
 
-let mayStore = 1, mayLoad = 1, usesCustomInserter = 1 in
+let mayStore = 1, mayLoad = 1, usesCustomInserter = 1, Predicates = [HasS32C1I] in
 {
   def S32C1I: RRI8_Inst<0x02, (outs AR:$a), (ins AR:$t, mem32:$addr),
               "s32c1i\t$t, $addr", 
@@ -1016,13 +1021,13 @@ let mayStore = 1, mayLoad = 1, usesCustomInserter = 1 in
 }
 
 def WSR_SCOMPARE1: RSR_Inst<0x00, 0x03, 0x01, (outs), (ins AR:$t),
-					"wsr\t$t, SCOMPARE1", [(Xtensa_wsr AR:$t)]>
+					"wsr\t$t, SCOMPARE1", [(Xtensa_wsr AR:$t)]>, Requires<[HasS32C1I]>
 {
 	let Defs = [SCOMPARE1];
 }
 
 def RUR_THREADPTR: RRR_Inst<0x00, 0x03, 0x0e, (outs AR:$dst), (ins),
-					"rur\t$dst, THREADPTR", [(set AR:$dst, (Xtensa_rur))]>
+					"rur\t$dst, THREADPTR", [(set AR:$dst, (Xtensa_rur))]>, Requires<[HasTHREADPTR]>
 {
 	let s = 0xE;
 	let t = 0x7;

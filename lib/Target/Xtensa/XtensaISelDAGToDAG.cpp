@@ -60,7 +60,7 @@ struct XtensaAddressingMode {
 
 class XtensaDAGToDAGISel : public SelectionDAGISel {
   const XtensaTargetLowering &Lowering;
-  const XtensaSubtarget &Subtarget;
+  const XtensaSubtarget *Subtarget;
 
   // Used by XtensaOperands.td to create integer constants.
   inline SDValue getImm(const SDNode *Node, uint64_t Imm) {
@@ -237,7 +237,7 @@ public:
   XtensaDAGToDAGISel(XtensaTargetMachine &TM, CodeGenOpt::Level OptLevel)
       : SelectionDAGISel(TM, OptLevel),
         Lowering(*TM.getSubtargetImpl()->getTargetLowering()),
-        Subtarget(*TM.getSubtargetImpl()) {}
+        Subtarget(TM.getSubtargetImpl()) {}
 
   // Override MachineFunctionPass.
   StringRef getPassName() const override {
