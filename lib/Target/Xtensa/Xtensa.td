@@ -87,8 +87,9 @@ class Proc<string Name, list<SubtargetFeature> Features>
  : Processor<Name, NoItineraries, Features>;
 
 def : Proc<"generic", []>;
-def : Proc<"esp32", [FeatureDensity, FeatureSingleFloat, FeatureLoop, FeatureMAC16, FeatureWindow, FeatureBoolean, FeatureSEXT, FeatureNSA, FeatureMul32, FeatureMul32High]>;
-def : Proc<"esp8266", [FeatureDensity, FeatureNSA, FeatureMul32]>; 
+def : Proc<"esp32", [FeatureDensity, FeatureSingleFloat, FeatureLoop, FeatureMAC16, FeatureWindow, FeatureBoolean, 
+                     FeatureSEXT, FeatureNSA, FeatureMul32, FeatureMul32High, FeatureS32C1I, FeatureTHREADPTR, FeatureDiv32]>;
+def : Proc<"esp8266", [FeatureDensity, FeatureNSA, FeatureMul32]>;
 
 //===----------------------------------------------------------------------===//
 // Register File Description

@@ -28,9 +28,23 @@ XtensaSubtarget &
 XtensaSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS) {
   std::string CPUName = CPU;
   if (CPUName.empty()) {
-    // TODO:generate cpu name?
-    CPUName = "";
+    // set default cpu name
+    CPUName = "esp32";
   }
+
+  HasDensity = false;
+  HasSingleFloat = false;
+  HasLoop = false;
+  HasMAC16 = false;
+  HasWindow = false;
+  HasBoolean = false;
+  HasSEXT = false;
+  HasNSA = false;
+  HasMul32 = false;
+  HasMul32High = false;
+  HasDiv32 = false;
+  HasS32C1I = false;
+  HasTHREADPTR = false;
 
   // Parse features string.
   ParseSubtargetFeatures(CPUName, FS);

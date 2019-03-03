@@ -47,43 +47,43 @@ private:
   bool UseSoftFloat;
 
   // Enabled Xtensa Density extension
-  bool HasDensity = true;
+  bool HasDensity;
 
   // Enabled Xtensa Single FP instructions
-  bool HasSingleFloat = true;
+  bool HasSingleFloat;
 
   // Enabled Xtensa Loop extension
-  bool HasLoop = true;
+  bool HasLoop;
 
   // Enabled Xtensa MAC16 instructions
-  bool HasMAC16 = true;
+  bool HasMAC16;
 
   // Enabled Xtensa Window extension
-  bool HasWindow = true;
+  bool HasWindow;
 
   // Enabled Xtensa Boolean extension
-  bool HasBoolean = true;
+  bool HasBoolean;
 
   // Enable Xtensa Sign Extend option
-  bool HasSEXT = true;
+  bool HasSEXT;
 
   // Enable Xtensa NSA option
-  bool HasNSA = true;
+  bool HasNSA;
 
   // Enable Xtensa Mul32 option
-  bool HasMul32 = true;
+  bool HasMul32;
 
   // Enable Xtensa Mul32High option
-  bool HasMul32High = true;
+  bool HasMul32High;
 
   // Enable Xtensa Div32 option
-  bool HasDiv32 = true;
+  bool HasDiv32;
 
   // Enable Xtensa S32C1I option
-  bool HasS32C1I = true;
+  bool HasS32C1I;
 
   // Enable Xtensa THREADPTR option
-  bool HasTHREADPTR = true;
+  bool HasTHREADPTR;
 
   XtensaSubtarget &initializeSubtargetDependencies(StringRef CPU, StringRef FS);
 
