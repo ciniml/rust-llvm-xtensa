@@ -63,7 +63,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   MVT PtrVT = MVT::i32;
   // Set up the register classes.
   addRegisterClass(MVT::i32, &Xtensa::ARRegClass);
-  if (Subtarget.hasF()) {
+  if (Subtarget.hasSingleFloat()) {
     addRegisterClass(MVT::f32, &Xtensa::FPRRegClass);
   }
 
@@ -223,7 +223,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
     if (isTypeLegal(VT)) {
       // We can use FI for FRINT.
       // setOperationAction(ISD::FRINT, VT, Legal);
-      if (VT.getSizeInBits() == 32 && Subtarget.hasF()) {
+      if (VT.getSizeInBits() == 32 && Subtarget.hasSingleFloat()) {
         setOperationAction(ISD::FADD, VT, Legal);
         setOperationAction(ISD::FSUB, VT, Legal);
         setOperationAction(ISD::FMUL, VT, Legal);
@@ -247,7 +247,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   }
 
   // Handle floating-point types.
-  if (Subtarget.hasF()) {
+  if (Subtarget.hasSingleFloat()) {
     setOperationAction(ISD::FMA, MVT::f32, Legal);
     setOperationAction(ISD::BITCAST, MVT::i32, Legal);
     setOperationAction(ISD::BITCAST, MVT::f32, Legal);
@@ -308,7 +308,7 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   // them
   setOperationAction(ISD::ATOMIC_FENCE, MVT::Other, Custom);
 
-  if (Subtarget.hasF()) {
+  if (Subtarget.hasSingleFloat()) {
     setCondCodeAction(ISD::SETOGT, MVT::f32, Expand);
     setCondCodeAction(ISD::SETOGE, MVT::f32, Expand);
     setCondCodeAction(ISD::SETONE, MVT::f32, Expand);
@@ -424,7 +424,7 @@ XtensaTargetLowering::getRegForInlineAsmConstraint(
       return std::make_pair(0U, &Xtensa::ARRegClass);
 
     case 'f': // Floating-point register
-      if (Subtarget.hasF())
+      if (Subtarget.hasSingleFloat())
         return std::make_pair(
             0U, &Xtensa::ARRegClass /* TODO Xtensa::FP32BitRegClass */);
       return std::make_pair(0U, &Xtensa::ARRegClass);
@@ -485,7 +485,7 @@ static SDValue performSUBCombine(SDNode *N, SelectionDAG &DAG,
                                  TargetLowering::DAGCombinerInfo &DCI,
                                  const XtensaSubtarget &Subtarget) {
   if (DCI.isBeforeLegalizeOps()) {
-    if (Subtarget.hasF() && N->getValueType(0) == MVT::f32)
+    if (Subtarget.hasSingleFloat() && N->getValueType(0) == MVT::f32)
       return performMADD_MSUBCombine(N, DAG, Subtarget);
   }
   return SDValue();
@@ -495,7 +495,7 @@ static SDValue performADDCombine(SDNode *N, SelectionDAG &DAG,
                                  TargetLowering::DAGCombinerInfo &DCI,
                                  const XtensaSubtarget &Subtarget) {
   if (DCI.isBeforeLegalizeOps()) {
-    if (Subtarget.hasF() && N->getValueType(0) == MVT::f32)
+    if (Subtarget.hasSingleFloat() && N->getValueType(0) == MVT::f32)
       return performMADD_MSUBCombine(N, DAG, Subtarget);
   }
   return SDValue();
@@ -1668,7 +1668,7 @@ SDValue XtensaTargetLowering::lowerATOMIC_FENCE(SDValue Op,
                                                 SelectionDAG &DAG) const {
   SDLoc DL(Op);
   SDValue Chain = Op.getOperand(0);
-  return DAG.getNode(XtensaISD::MEMW, DL, MVT::isVoid, Chain);
+  return DAG.getNode(XtensaISD::MEMW, DL, MVT::Other, Chain);
 }
 
 SDValue XtensaTargetLowering::lowerSTACKSAVE(SDValue Op,

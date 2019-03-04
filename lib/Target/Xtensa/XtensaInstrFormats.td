@@ -39,6 +39,7 @@ class XtensaInst16<dag outs, dag ins, string asmstr, list<dag> pattern,
                 XtensaInst<3, outs, ins, asmstr, pattern, itin>  
 {
   field bits<16> Inst;
+  let Predicates = [HasDensity];
 }
 
 class RRR_Inst<bits<4> op0, bits<4> op1, bits<4> op2, dag outs, dag ins, 
