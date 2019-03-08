@@ -36,7 +36,7 @@ XtensaSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS) {
   HasSingleFloat = false;
   HasLoop = false;
   HasMAC16 = false;
-  HasWindow = false;
+  HasWindowed = false;
   HasBoolean = false;
   HasSEXT = false;
   HasNSA = false;

@@ -40,9 +40,7 @@ const uint16_t *
 XtensaRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   if (Subtarget.isWinABI())
     return CSRWE_Xtensa_SaveList; // CSRW_Xtensa_SaveList ?
-  else if (Subtarget.isESP8266())
-    return CSR_Xtensa_SaveList;
-  else //(Subtarget.isESP32())
+  else
     return CSR_Xtensa_SaveList;
 }
 

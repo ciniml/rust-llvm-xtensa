@@ -123,7 +123,13 @@ void XtensaFrameLowering::emitPrologue(MachineFunction &MF,
       BuildMI(MBB, MBBI, dl, TII.get(Xtensa::SUB), TmpReg)
           .addReg(SP)
           .addReg(TmpReg);
-      BuildMI(MBB, MBBI, dl, TII.get(Xtensa::MOVSP), SP).addReg(TmpReg);
+      if (STI.isWinABI())
+      {
+        BuildMI(MBB, MBBI, dl, TII.get(Xtensa::MOVSP), SP).addReg(TmpReg);
+      } else
+      {
+        BuildMI(MBB, MBBI, dl, TII.get(Xtensa::MOV_N), SP).addReg(TmpReg);
+      }
     }
 
     // emit ".cfi_def_cfa_offset StackSize"
@@ -219,8 +225,13 @@ void XtensaFrameLowering::emitEpilogue(MachineFunction &MF,
     for (unsigned i = 0; i < MFI.getCalleeSavedInfo().size(); ++i)
       --I;
 
-    // Insert instruction "movsp $sp, $fp" at this location.
-    BuildMI(MBB, I, dl, TII.get(Xtensa::MOVSP), SP).addReg(FP);
+    if (STI.isWinABI()) {
+      // Insert instruction "movsp $sp, $fp" at this location.
+      BuildMI(MBB, I, dl, TII.get(Xtensa::MOVSP), SP).addReg(FP);
+    } else
+    {
+      BuildMI(MBB, I, dl, TII.get(Xtensa::MOV_N), SP).addReg(FP);
+    }
   }
 
   if (STI.isWinABI()) {

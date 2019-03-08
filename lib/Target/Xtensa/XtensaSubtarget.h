@@ -58,8 +58,8 @@ private:
   // Enabled Xtensa MAC16 instructions
   bool HasMAC16;
 
-  // Enabled Xtensa Window extension
-  bool HasWindow;
+  // Enabled Xtensa Windowed Register option
+  bool HasWindowed;
 
   // Enabled Xtensa Boolean extension
   bool HasBoolean;
@@ -102,13 +102,13 @@ public:
   bool isESP8266() const { return XtensaArchVersion == ESP8266; };
   bool isESP32() const { return XtensaArchVersion == ESP32; };
 
-  bool isWinABI() const { return true /* isESP32(); */; };
+  bool isWinABI() const { return hasWindowed(); };
 
   bool hasDensity() const { return HasDensity; };
 
   bool hasSingleFloat() const { return HasSingleFloat; };
 
-  bool hasWindow() const { return HasWindow; }; 
+  bool hasWindowed() const { return HasWindowed; }; 
 
   bool hasLoop() const { return HasLoop; }; 
 

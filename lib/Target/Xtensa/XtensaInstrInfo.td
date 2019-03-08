@@ -202,7 +202,7 @@ def MOV_N: RRRN_Inst<0x0D, (outs AR:$t), (ins AR:$s),
 
 def MOVSP: RRR_Inst<0x00, 0x00, 0x00, (outs AR:$t), (ins AR:$s),
    "movsp\t$t, $s",
-   [(set AR:$t, (Xtensa_movsp AR:$s))]>, Requires<[HasWindow]>
+   [(set AR:$t, (Xtensa_movsp AR:$s))]>, Requires<[HasWindowed]>
 {
   let r = 0x01;
 }
@@ -509,21 +509,21 @@ let isCall = 1,
   
   def CALL4: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
           "call4\t$offset", 
-          []>, Requires<[HasWindow]>
+          []>, Requires<[HasWindowed]>
   {
     let n = 1;
   }
 
   def CALL8: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
           "call8\t$offset", 
-          []>, Requires<[HasWindow]>
+          []>, Requires<[HasWindowed]>
   {
     let n = 2;
   }
 
   def CALL12: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
           "call12\t$offset", 
-          []>, Requires<[HasWindow]>
+          []>, Requires<[HasWindowed]>
   {
     let n = 3;
   }
@@ -538,21 +538,21 @@ let isCall = 1,
     }
 	
     def CALLX4: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
-            "callx4\t$s", []>, Requires<[HasWindow]>
+            "callx4\t$s", []>, Requires<[HasWindowed]>
     {
       let m = 0x3;
       let n = 0x1;
     }
 
     def CALLX8: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
-            "callx8\t$s", []>, Requires<[HasWindow]>
+            "callx8\t$s", []>, Requires<[HasWindowed]>
     {
       let m = 0x3;
       let n = 0x2;
     }
 
     def CALLX12: CALLX_Inst<0x00, 0x00, 0x00, (outs), (ins AR:$s), 
-            "callx12\t$s", []>, Requires<[HasWindow]>
+            "callx12\t$s", []>, Requires<[HasWindowed]>
     {
       let m = 0x3;
       let n = 0x3;
@@ -561,7 +561,7 @@ let isCall = 1,
 }
 
 let isReturn = 1, isTerminator = 1, isCodeGenOnly = 1,
-    isBarrier = 1, hasCtrlDep = 1, Predicates = [HasWindow] in
+    isBarrier = 1, hasCtrlDep = 1, Predicates = [HasWindowed] in
 {
 
   def RET_N: RRRN_Inst<0x0D, (outs), (ins),
@@ -585,7 +585,7 @@ def : Pat<(Xtensa_retflag), (RET_N)>;
 def : Pat<(Xtensa_retWflag), (RETW_N)>;
 
 def ENTRY: BRI12_Inst<0x06, (outs), (ins AR:$s, entry_imm12:$imm12), 
-                "entry\t$s, $imm12", []>, Requires<[HasWindow]>
+                "entry\t$s, $imm12", []>, Requires<[HasWindowed]>
 {
   let m = 0x0;
   let n = 0x2;
