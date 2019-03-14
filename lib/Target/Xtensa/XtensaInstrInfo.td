@@ -498,11 +498,11 @@ let isBranch = 1, isTerminator = 1, isBarrier = 1 in
 }
 
 let isCall = 1,
-   Defs = [sp] in 
+   Defs = [a0] in 
 {
   def CALL0: CALL_Inst<0x05, (outs), (ins pcrel32call:$offset),
-          "call0\t$offset", 
-          [(Xtensa_call pcrel32call:$offset)]>
+          "call0\t$offset",
+          []>
   {
     let n = 0;
   }
@@ -561,7 +561,7 @@ let isCall = 1,
 }
 
 let isReturn = 1, isTerminator = 1, isCodeGenOnly = 1,
-    isBarrier = 1, hasCtrlDep = 1, Predicates = [HasWindowed] in
+    isBarrier = 1, hasCtrlDep = 1, Uses = [a0], Predicates = [HasWindowed] in
 {
 
   def RET_N: RRRN_Inst<0x0D, (outs), (ins),
@@ -589,6 +589,7 @@ def ENTRY: BRI12_Inst<0x06, (outs), (ins AR:$s, entry_imm12:$imm12),
 {
   let m = 0x0;
   let n = 0x2;
+  let Defs = [sp];
 }
 
 
