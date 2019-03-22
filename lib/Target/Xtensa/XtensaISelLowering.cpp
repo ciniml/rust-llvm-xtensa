@@ -309,17 +309,9 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   // VASTART and VACOPY need to deal with the Xtensa-specific varargs
   // structure, but VAEND is a no-op.
   setOperationAction(ISD::VASTART, MVT::Other, Custom);
-  if (!Subtarget.isWinABI()) {
-    // TODO
-    setOperationAction(ISD::VAARG, MVT::Other, Expand);
-    setOperationAction(ISD::VACOPY, MVT::Other, Expand);
-  } else {
-    // we use special va_list structure so we have to customize this
-    setOperationAction(ISD::VAARG, MVT::i32, Custom);
-    //    setOperationAction(ISD::VAARG, MVT::i64, Custom);
-    setOperationAction(ISD::VAARG, MVT::Other, Custom);
-    setOperationAction(ISD::VACOPY, MVT::Other, Custom /* Expand */);
-  }
+  // we use special va_list structure so we have to customize this
+  setOperationAction(ISD::VAARG, MVT::Other, Custom);
+  setOperationAction(ISD::VACOPY, MVT::Other, Custom);
 
   setOperationAction(ISD::VAEND, MVT::Other, Expand);
 
@@ -1510,17 +1502,6 @@ SDValue XtensaTargetLowering::lowerVASTART(SDValue Op,
   SDValue Chain = Op.getOperand(0);
   SDValue Addr = Op.getOperand(1);
 
-  // TODO
-  if (!Subtarget.isWinABI()) {
-    const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
-
-    SDValue FI = DAG.getFrameIndex(XtensaFI->getVarArgsFrameIndex(), PtrVT);
-
-    // vastart just stores the address of the VarArgsFrameIndex slot into the
-    // memory location argument.
-    return DAG.getStore(Chain, DL, FI, Addr, MachinePointerInfo(SV));
-  }
-
   // typedef struct __va_list_tag {
   //   int32_t *__va_stk; /* Initialized to point  to the position of the
   //                       * first argument in memory offset to account for the
@@ -1594,23 +1575,6 @@ SDValue XtensaTargetLowering::lowerVAARG(SDValue Op, SelectionDAG &DAG) const {
   const Value *SV = cast<SrcValueSDNode>(Node->getOperand(2))->getValue();
   SDLoc DL(Node);
   int Offset = Node->getConstantOperandVal(3);
-
-  // TODO
-  if (!Subtarget.isWinABI()) {
-    SDValue VAList =
-        DAG.getLoad(PtrVT, DL, InChain, VAListPtr, MachinePointerInfo(SV));
-    // Increment the pointer, VAList, to the next vaarg.
-    SDValue NextPtr =
-        DAG.getNode(ISD::ADD, DL, PtrVT, VAList,
-                    DAG.getIntPtrConstant(VT.getSizeInBits() / 8, DL));
-    // Store the incremented VAList to the legalized pointer.
-    InChain = DAG.getStore(VAList.getValue(1), DL, NextPtr, VAListPtr,
-                           MachinePointerInfo(SV));
-    // Load the actual argument out of the pointer VAList.
-    // We can't count on greater alignment than the word size.
-    return DAG.getLoad(VT, DL, InChain, VAList, MachinePointerInfo(),
-                       std::min(PtrVT.getSizeInBits(), VT.getSizeInBits()) / 8);
-  }
 
   SDValue ARAreaPtr = DAG.getNode(ISD::ADD, DL, PtrVT, VAListPtr,
                                   DAG.getConstant(8, DL, MVT::i32));
