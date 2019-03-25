@@ -97,7 +97,14 @@ void XtensaInstrInfo::adjustStackPtr(unsigned SP, int64_t Amount,
         .addReg(SP)
         .addReg(Reg1, RegState::Kill);
   }
-  BuildMI(MBB, I, DL, get(Xtensa::MOVSP), SP).addReg(Reg, RegState::Kill);
+
+  if (STI.isWinABI())
+  {
+    BuildMI(MBB, I, DL, get(Xtensa::MOVSP), SP).addReg(Reg, RegState::Kill);
+  } else
+  {
+    BuildMI(MBB, I, DL, get(Xtensa::MOV_N), SP).addReg(Reg, RegState::Kill);
+  }
 }
 
 unsigned XtensaInstrInfo::GetInstSizeInBytes(MachineInstr *MI) const {

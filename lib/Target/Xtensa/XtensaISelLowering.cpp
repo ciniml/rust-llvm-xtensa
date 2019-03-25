@@ -86,7 +86,11 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
 
   setOperationAction(ISD::BR_CC, MVT::i32, Legal);
   setOperationAction(ISD::BR_CC, MVT::i64, Expand);
-  setOperationAction(ISD::BR_CC, MVT::f32, Custom);
+  if (Subtarget.hasSingleFloat())
+    setOperationAction(ISD::BR_CC, MVT::f32, Custom);
+  else
+    setOperationAction(ISD::BR_CC, MVT::f32, Expand);
+
 
   setOperationAction(ISD::SELECT, MVT::i32, Expand);
   setOperationAction(ISD::SELECT, MVT::i64, Expand);
@@ -94,12 +98,20 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
 
   setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
   setOperationAction(ISD::SELECT_CC, MVT::i64, Expand);
-  setOperationAction(ISD::SELECT_CC, MVT::f32, Custom);
+  if (Subtarget.hasSingleFloat())
+    setOperationAction(ISD::SELECT_CC, MVT::f32, Custom);
+  else
+    setOperationAction(ISD::SELECT_CC, MVT::f32, Expand);
+
 
   setOperationAction(ISD::SETCC, MVT::i32,
                      Custom /* Legal */); // folds into brcond
   setOperationAction(ISD::SETCC, MVT::i64, Expand);
-  setOperationAction(ISD::SETCC, MVT::f32, Custom);
+  if (Subtarget.hasSingleFloat())
+    setOperationAction(ISD::SETCC, MVT::f32, Custom);
+  else
+    setOperationAction(ISD::SETCC, MVT::f32, Expand);
+
 
   setOperationAction(ISD::Constant, MVT::i32, Custom);
   setOperationAction(ISD::Constant, MVT::i64, Expand /*Custom */);
@@ -137,14 +149,21 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   setOperationAction(ISD::MULHU, MVT::i32, Expand);
   // setOperationAction(ISD::MULHU, MVT::i32, Legal);
   setOperationAction(ISD::MULHU, MVT::i64, Expand);
-  setOperationAction(ISD::SDIV, MVT::i32, Legal);
+
+  if (Subtarget.hasDiv32()) {
+    setOperationAction(ISD::SDIV, MVT::i32, Legal);
+    setOperationAction(ISD::UDIV, MVT::i32, Legal);
+    setOperationAction(ISD::SREM, MVT::i32, Legal);
+    setOperationAction(ISD::UREM, MVT::i32, Legal);
+  } else {
+    setOperationAction(ISD::SDIV, MVT::i32, Expand);
+    setOperationAction(ISD::UDIV, MVT::i32, Expand);
+    setOperationAction(ISD::SREM, MVT::i32, Expand);
+    setOperationAction(ISD::UREM, MVT::i32, Expand);  
+  }
   setOperationAction(ISD::SDIV, MVT::i64, Expand);
-  setOperationAction(ISD::UDIV, MVT::i32, Legal);
-  setOperationAction(ISD::SDIV, MVT::i32, Legal);
-  setOperationAction(ISD::SDIV, MVT::i64, Expand);
-  setOperationAction(ISD::SREM, MVT::i32, Legal);
+  setOperationAction(ISD::UDIV, MVT::i64, Expand);
   setOperationAction(ISD::SREM, MVT::i64, Expand);
-  setOperationAction(ISD::UREM, MVT::i32, Legal);
   setOperationAction(ISD::UREM, MVT::i64, Expand);
 
   // Xtensa doesn't support  [ADD,SUB][E,C]
@@ -290,17 +309,9 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   // VASTART and VACOPY need to deal with the Xtensa-specific varargs
   // structure, but VAEND is a no-op.
   setOperationAction(ISD::VASTART, MVT::Other, Custom);
-  if (!Subtarget.isWinABI()) {
-    // TODO
-    setOperationAction(ISD::VAARG, MVT::Other, Expand);
-    setOperationAction(ISD::VACOPY, MVT::Other, Expand);
-  } else {
-    // we use special va_list structure so we have to customize this
-    setOperationAction(ISD::VAARG, MVT::i32, Custom);
-    //    setOperationAction(ISD::VAARG, MVT::i64, Custom);
-    setOperationAction(ISD::VAARG, MVT::Other, Custom);
-    setOperationAction(ISD::VACOPY, MVT::Other, Custom /* Expand */);
-  }
+  // we use special va_list structure so we have to customize this
+  setOperationAction(ISD::VAARG, MVT::Other, Custom);
+  setOperationAction(ISD::VACOPY, MVT::Other, Custom);
 
   setOperationAction(ISD::VAEND, MVT::Other, Expand);
 
@@ -324,8 +335,9 @@ XtensaTargetLowering::XtensaTargetLowering(const TargetMachine &tm,
   // Compute derived properties from the register classes
   computeRegisterProperties(STI.getRegisterInfo());
 
-  // if (Subtarget.hasF())
-  { addRegisterClass(MVT::i1, &Xtensa::BRRegClass); }
+  if (Subtarget.hasBoolean()) {
+    addRegisterClass(MVT::i1, &Xtensa::BRRegClass);
+  }
 }
 
 /// If a physical register, this returns the register that receives the
@@ -1490,17 +1502,6 @@ SDValue XtensaTargetLowering::lowerVASTART(SDValue Op,
   SDValue Chain = Op.getOperand(0);
   SDValue Addr = Op.getOperand(1);
 
-  // TODO
-  if (!Subtarget.isWinABI()) {
-    const Value *SV = cast<SrcValueSDNode>(Op.getOperand(2))->getValue();
-
-    SDValue FI = DAG.getFrameIndex(XtensaFI->getVarArgsFrameIndex(), PtrVT);
-
-    // vastart just stores the address of the VarArgsFrameIndex slot into the
-    // memory location argument.
-    return DAG.getStore(Chain, DL, FI, Addr, MachinePointerInfo(SV));
-  }
-
   // typedef struct __va_list_tag {
   //   int32_t *__va_stk; /* Initialized to point  to the position of the
   //                       * first argument in memory offset to account for the
@@ -1574,23 +1575,6 @@ SDValue XtensaTargetLowering::lowerVAARG(SDValue Op, SelectionDAG &DAG) const {
   const Value *SV = cast<SrcValueSDNode>(Node->getOperand(2))->getValue();
   SDLoc DL(Node);
   int Offset = Node->getConstantOperandVal(3);
-
-  // TODO
-  if (!Subtarget.isWinABI()) {
-    SDValue VAList =
-        DAG.getLoad(PtrVT, DL, InChain, VAListPtr, MachinePointerInfo(SV));
-    // Increment the pointer, VAList, to the next vaarg.
-    SDValue NextPtr =
-        DAG.getNode(ISD::ADD, DL, PtrVT, VAList,
-                    DAG.getIntPtrConstant(VT.getSizeInBits() / 8, DL));
-    // Store the incremented VAList to the legalized pointer.
-    InChain = DAG.getStore(VAList.getValue(1), DL, NextPtr, VAListPtr,
-                           MachinePointerInfo(SV));
-    // Load the actual argument out of the pointer VAList.
-    // We can't count on greater alignment than the word size.
-    return DAG.getLoad(VT, DL, InChain, VAList, MachinePointerInfo(),
-                       std::min(PtrVT.getSizeInBits(), VT.getSizeInBits()) / 8);
-  }
 
   SDValue ARAreaPtr = DAG.getNode(ISD::ADD, DL, PtrVT, VAListPtr,
                                   DAG.getConstant(8, DL, MVT::i32));
@@ -1680,9 +1664,13 @@ SDValue XtensaTargetLowering::lowerSTACKSAVE(SDValue Op,
 SDValue XtensaTargetLowering::lowerSTACKRESTORE(SDValue Op,
                                                 SelectionDAG &DAG) const {
   unsigned sp = Xtensa::sp;
-  SDValue NewSP =
-      DAG.getNode(XtensaISD::MOVSP, SDLoc(Op), MVT::i32, Op.getOperand(1));
-  return DAG.getCopyToReg(Op.getOperand(0), SDLoc(Op), sp, NewSP);
+  if (Subtarget.isWinABI()) {
+    SDValue NewSP =
+        DAG.getNode(XtensaISD::MOVSP, SDLoc(Op), MVT::i32, Op.getOperand(1));
+    return DAG.getCopyToReg(Op.getOperand(0), SDLoc(Op), sp, NewSP);
+  } else {
+    return DAG.getCopyToReg(Op.getOperand(0), SDLoc(Op), sp, Op.getOperand(1));
+  }
 }
 
 SDValue XtensaTargetLowering::lowerFRAMEADDR(SDValue Op,
@@ -1718,8 +1706,12 @@ SDValue XtensaTargetLowering::lowerDYNAMIC_STACKALLOC(SDValue Op,
   unsigned SPReg = Xtensa::sp;
   SDValue SP = DAG.getCopyFromReg(Chain, DL, SPReg, VT);
   SDValue NewSP = DAG.getNode(ISD::SUB, DL, VT, SP, SizeRoundUp); // Value
-  SDValue NewSP1 = DAG.getNode(XtensaISD::MOVSP, DL, MVT::i32, NewSP);
-  Chain = DAG.getCopyToReg(SP.getValue(1), DL, SPReg, NewSP1); // Output chain
+  if (Subtarget.isWinABI()) {
+    SDValue NewSP1 = DAG.getNode(XtensaISD::MOVSP, DL, MVT::i32, NewSP);
+    Chain = DAG.getCopyToReg(SP.getValue(1), DL, SPReg, NewSP1); // Output chain
+  } else {
+    Chain = DAG.getCopyToReg(SP.getValue(1), DL, SPReg, NewSP); // Output chain
+  }
 
   SDValue NewVal = DAG.getCopyFromReg(Chain, DL, SPReg, MVT::i32);
   Chain = NewVal.getValue(1);
@@ -2629,9 +2621,21 @@ MachineBasicBlock *XtensaTargetLowering::EmitInstrWithCustomInserter(
     }
 
     BuildMI(*MBB, MI, DL, TII.get(Xtensa::L8UI), r_new).add(Op1).add(Op2);
-    BuildMI(*MBB, MI, DL, TII.get(Xtensa::SEXT), R.getReg())
+    if (Subtarget.hasSEXT())
+    {
+       BuildMI(*MBB, MI, DL, TII.get(Xtensa::SEXT), R.getReg())
         .addReg(r_new)
         .addImm(7);
+    } else
+    {
+      unsigned r_new1 = MRI.createVirtualRegister(RC);
+      BuildMI(*MBB, MI, DL, TII.get(Xtensa::SLLI), r_new1)
+          .addReg(r_new)
+          .addImm(24);
+      BuildMI(*MBB, MI, DL, TII.get(Xtensa::SRAI), R.getReg())
+          .addReg(r_new1)
+          .addImm(24);
+    }
     MI.eraseFromParent();
     return MBB;
   }

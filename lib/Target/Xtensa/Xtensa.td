@@ -36,10 +36,10 @@ def FeatureMAC16 : SubtargetFeature<"mac16", "HasMAC16", "true",
 def HasMAC16 : Predicate<"Subtarget->hasMAC16()">,
                            AssemblerPredicate<"FeatureMAC16">;
 
-def FeatureWindow : SubtargetFeature<"winabi", "HasWindow", "true",
-                    "Enable Xtensa Window extension">;
-def HasWindow : Predicate<"Subtarget->hasWindow()">,
-                           AssemblerPredicate<"FeatureWindow">;
+def FeatureWindowed : SubtargetFeature<"windowed", "HasWindowed", "true",
+                    "Enable Xtensa Windowed Register option">;
+def HasWindowed : Predicate<"Subtarget->hasWindowed()">,
+                           AssemblerPredicate<"FeatureWindowed">;
 
 def FeatureBoolean : SubtargetFeature<"bool", "HasBoolean", "true",
                     "Enable Xtensa Boolean extension">;
@@ -87,8 +87,9 @@ class Proc<string Name, list<SubtargetFeature> Features>
  : Processor<Name, NoItineraries, Features>;
 
 def : Proc<"generic", []>;
-def : Proc<"esp32", [FeatureDensity, FeatureSingleFloat, FeatureLoop, FeatureMAC16, FeatureWindow, FeatureBoolean, FeatureSEXT, FeatureNSA, FeatureMul32, FeatureMul32High]>;
-def : Proc<"esp8266", [FeatureDensity, FeatureNSA, FeatureMul32]>; 
+def : Proc<"esp32", [FeatureDensity, FeatureSingleFloat, FeatureLoop, FeatureMAC16, FeatureWindowed, FeatureBoolean, 
+                     FeatureSEXT, FeatureNSA, FeatureMul32, FeatureMul32High, FeatureS32C1I, FeatureTHREADPTR, FeatureDiv32]>;
+def : Proc<"esp8266", [FeatureDensity, FeatureNSA, FeatureMul32]>;
 
 //===----------------------------------------------------------------------===//
 // Register File Description

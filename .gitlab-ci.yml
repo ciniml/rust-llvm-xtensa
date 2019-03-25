@@ -1,0 +1,62 @@
+stages:
+  #- build
+  - test
+
+#image: $CI_DOCKER_REGISTRY/esp32-toolchain
+image: $CI_DOCKER_REGISTRY/esp32-ci-qemu
+
+before_script:
+  # Use CI Tools
+  - curl -sSL ${CIT_LOADER_URL} | sh
+  - source citools/import_functions
+
+.add_gitlab_key: &add_gitlab_key |
+  cit_add_ssh_key "${GITLAB_KEY}" "$(cit_parse_url_host ${GITLAB_SSH_SERVER})" "$(cit_parse_url_port ${GITLAB_SSH_SERVER})"
+
+.build_llvm: &build_llvm |
+  cd tools
+  git clone -b ${CLANG_REPO_BRANCH} --depth 1 $GITLAB_SSH_SERVER/${CLANG_REPO} 
+  cd ../
+  mkdir llvm_build
+  cd llvm_build
+  apt-get update && apt-get install -y cmake
+  apt-get install libpixman-1-dev
+  cmake ../  -DLLVM_TARGETS_TO_BUILD=Xtensa -DCMAKE_BUILD_TYPE=Release
+  cmake --build . -- -j4
+  cd ..
+  export PATH=$PATH:${PWD}/llvm_build/bin/
+
+# Just get an existing crosstool-ng build like a stub
+.get_dummy_gcc_toolchain: &get_dummy_gcc_toolchain |
+  wget ${ARC_ESP32_TOOLS_SERVER}
+  tar xf ${ARC_ESP32_TOOLS}
+  export PATH=${PWD}/xtensa-esp32-elf/bin:${PATH}
+  wget ${ARC_LX106_TOOLS_SERVER}
+  tar xf ${ARC_LX106_TOOLS}
+  export PATH=${PWD}/xtensa-lx106-elf/bin:${PATH}  
+
+testsuite:
+  stage: test
+  script:
+
+    # getting testsuite
+    - *add_gitlab_key
+
+    # build llvm toolchain
+    - *build_llvm
+    
+    # preparing testsuite
+    - git clone -b ${TESTSUITE_REPO_BRANCH} --depth 1 $GITLAB_SSH_SERVER/${TESTSUITE_REPO}
+    - cd llvm-xtensa-testsuite
+    - apt-get update && apt-get install -y timelimit
+
+    # gcc and toolchain.
+    - *get_dummy_gcc_toolchain
+
+    # build qemu for esp32
+    - ./qemu_esp32_install.sh
+    - ./run_esp32_tests.sh
+
+    # build qemu for esp8266
+    - ./qemu_esp8266_install.sh
+    - ./run_esp8266_tests.sh
