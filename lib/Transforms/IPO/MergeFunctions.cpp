@@ -651,11 +651,14 @@ static bool isThunkProfitable(Function *F) {
   return true;
 }
 
-// Replace G with a simple tail call to bitcast(F). Under MergeFunctionsPDI,
-// we use G itself for creating the thunk as we preserve the debug info
-// (and associated instructions) from G's entry block pertaining to G's
-// incoming arguments which are passed on as corresponding arguments in
-// the call that G makes to F.
+// Replace G with a simple tail call to bitcast(F). Also (unless
+// MergeFunctionsPDI holds) replace direct uses of G with bitcast(F),
+// delete G. Under MergeFunctionsPDI, we use G itself for creating
+// the thunk as we preserve the debug info (and associated instructions)
+// from G's entry block pertaining to G's incoming arguments which are
+// passed on as corresponding arguments in the call that G makes to F.
+// For better debugability, under MergeFunctionsPDI, we do not modify G's
+// call sites to point to F even when within the same translation unit.
 void MergeFunctions::writeThunk(Function *F, Function *G) {
   BasicBlock *GEntryBlock = nullptr;
   std::vector<Instruction *> PDIUnrelatedWL;
